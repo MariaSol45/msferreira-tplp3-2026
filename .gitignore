@@ -1,0 +1,9 @@
+# Maven
+target/
+**/target/
+
+# IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
