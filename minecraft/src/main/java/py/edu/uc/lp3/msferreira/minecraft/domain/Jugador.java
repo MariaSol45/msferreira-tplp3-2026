@@ -7,6 +7,15 @@ public class Jugador extends Entidad {
     public Jugador(String nombre, int nivelEXP, int salud, double posicionX,
                    double posicionY, double posicionZ, int velocidad) {
         super(salud, posicionX, posicionY, posicionZ, velocidad);
+
+        if (nombre == null || nombre.isBlank()) {
+            throw new IllegalArgumentException("El nombre no puede ser nulo ni estar en blanco.");
+        }
+
+        if (nivelEXP < 0) {
+            throw new IllegalArgumentException("El nivel de experiencia no puede ser negativo.");
+        }
+
         this.nombre = nombre;
         this.nivelEXP = nivelEXP;
     }

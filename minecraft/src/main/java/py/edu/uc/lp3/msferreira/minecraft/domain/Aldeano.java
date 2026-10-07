@@ -6,6 +6,11 @@ public class Aldeano extends EntidadPasiva {
     public Aldeano(int salud, double posicionX, double posicionY, double posicionZ,
                    int velocidad, boolean domesticable, String profesion) {
         super(salud, posicionX, posicionY, posicionZ, velocidad, domesticable);
+
+        if (profesion == null || profesion.isBlank()) {
+            throw new IllegalArgumentException("La profesión no puede ser nula ni estar en blanco.");
+        }
+
         this.profesion = profesion;
     }
 

@@ -17,6 +17,10 @@ public abstract class Entidad {
     	throw new IllegalArgumentException("La velocidad no puede ser negativa.");
 	}	
 
+    if (!Double.isFinite(posicionX) || !Double.isFinite(posicionY) || !Double.isFinite(posicionZ)) {
+        throw new IllegalArgumentException("Las coordenadas deben ser valores finitos.");
+    }
+
         this.salud = salud;
         this.posicionX = posicionX;
         this.posicionY = posicionY;
