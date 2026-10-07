@@ -1,4 +1,4 @@
-package py.edu.uc.lp3.msferreira.minecraft;
+package py.edu.uc.lp3.msferreira.minecraft.domain;
 
 public class Esqueleto extends EntidadHostil {
     public Esqueleto(int salud, double posicionX, double posicionY, double posicionZ,

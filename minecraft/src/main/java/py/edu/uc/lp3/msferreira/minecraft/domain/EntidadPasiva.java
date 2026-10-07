@@ -1,4 +1,4 @@
-package py.edu.uc.lp3.msferreira.minecraft;
+package py.edu.uc.lp3.msferreira.minecraft.domain;
 
 public class EntidadPasiva extends Entidad {
     private boolean domesticable;

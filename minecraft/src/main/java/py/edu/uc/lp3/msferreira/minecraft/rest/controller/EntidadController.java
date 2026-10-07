@@ -1,4 +1,4 @@
-package py.edu.uc.lp3.msferreira.minecraft;
+package py.edu.uc.lp3.msferreira.minecraft.rest.controller;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -6,6 +6,10 @@ import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import py.edu.uc.lp3.msferreira.minecraft.domain.Aldeano;
+import py.edu.uc.lp3.msferreira.minecraft.domain.Creeper;
+import py.edu.uc.lp3.msferreira.minecraft.domain.Entidad;
 
 @RestController
 public class EntidadController {

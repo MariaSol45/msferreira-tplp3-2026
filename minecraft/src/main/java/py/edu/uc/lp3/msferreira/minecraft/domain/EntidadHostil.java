@@ -1,4 +1,4 @@
-package py.edu.uc.lp3.msferreira.minecraft;
+package py.edu.uc.lp3.msferreira.minecraft.domain;
 
 public class EntidadHostil extends Entidad {
     private double rangoDeteccion;

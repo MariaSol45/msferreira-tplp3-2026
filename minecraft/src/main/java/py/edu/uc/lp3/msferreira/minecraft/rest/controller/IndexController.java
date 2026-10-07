@@ -1,4 +1,4 @@
-package py.edu.uc.lp3.msferreira.minecraft;
+package py.edu.uc.lp3.msferreira.minecraft.rest.controller;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
