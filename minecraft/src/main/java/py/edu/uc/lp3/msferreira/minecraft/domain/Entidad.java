@@ -28,6 +28,10 @@ public abstract class Entidad {
         this.velocidad = velocidad;
     }
 
+    public int getSalud() {
+        return salud;
+    }
+
     public void mover() {
         System.out.println("La entidad se está moviendo.");
     }
