@@ -1,6 +1,6 @@
 package py.edu.uc.lp3.msferreira.minecraft.domain;
 
-public class Aldeano extends EntidadPasiva {
+public class Aldeano extends EntidadPasiva implements UICapable {
     private String profesion;
 
     public Aldeano(int salud, double posicionX, double posicionY, double posicionZ,
@@ -16,5 +16,20 @@ public class Aldeano extends EntidadPasiva {
 
     public void comercio() {
         System.out.println("El aldeano de profesión " + profesion + " está comerciando.");
+    }
+
+    @Override
+    public String getImagen() {
+        return "aldeano.png";
+    }
+
+    @Override
+    public String getSonido() {
+        return "Sonido del aldeano";
+    }
+
+    @Override
+    public String getMensajeUI() {
+        return "El aldeano de profesión " + profesion + " está en " + getPosicion() + ".";
     }
 }

@@ -32,6 +32,14 @@ public abstract class Entidad {
         return salud;
     }
 
+    public String getPosicion() {
+        return "(" + posicionX + ", " + posicionY + ", " + posicionZ + ")";
+    }
+
+    public int getVelocidad() {
+        return velocidad;
+    }
+
     public void mover() {
         System.out.println("La entidad se está moviendo.");
     }

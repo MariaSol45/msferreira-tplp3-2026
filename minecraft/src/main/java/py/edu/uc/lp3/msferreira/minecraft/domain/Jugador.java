@@ -1,6 +1,6 @@
 package py.edu.uc.lp3.msferreira.minecraft.domain;
 
-public class Jugador extends Entidad {
+public class Jugador extends Entidad implements UICapable {
     private String nombre;
     private int nivelEXP;
 
@@ -31,6 +31,17 @@ public class Jugador extends Entidad {
     public void interactuar() {
         System.out.println(nombre + " está interactuando.");
     }
+
+    @Override
+    public String getImagen() {
+        return "jugador.png";
+    }
+
+    @Override
+    public String getSonido() {
+        return "Sonido del jugador";
+    }
+
 @Override
 public String comportamiento() {
     return "El jugador interactúa con el mundo.";

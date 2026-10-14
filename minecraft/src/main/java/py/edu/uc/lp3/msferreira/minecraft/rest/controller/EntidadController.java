@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Aldeano;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Creeper;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Entidad;
+import py.edu.uc.lp3.msferreira.minecraft.domain.Jugador;
+import py.edu.uc.lp3.msferreira.minecraft.domain.UICapable;
 
 @RestController
 public class EntidadController {
@@ -51,6 +53,45 @@ public class EntidadController {
         Map<String, Object> respuesta = new LinkedHashMap<>();
         respuesta.put("tipo", entidad.getClass().getSimpleName());
         respuesta.put("comportamiento", entidad.comportamiento());
+
+        return respuesta;
+    }
+
+    @GetMapping("/ui")
+    public Map<String, Object> obtenerDatosUI(
+            @RequestParam String tipo,
+            @RequestParam(defaultValue = "20") int salud,
+            @RequestParam(defaultValue = "0") double x,
+            @RequestParam(defaultValue = "0") double y,
+            @RequestParam(defaultValue = "0") double z,
+            @RequestParam(defaultValue = "1") int velocidad,
+            @RequestParam(defaultValue = "Steve") String nombre,
+            @RequestParam(defaultValue = "0") int experiencia,
+            @RequestParam(defaultValue = "Granjero") String profesion) {
+
+        UICapable elementoUI;
+
+        if (tipo.equalsIgnoreCase("jugador")) {
+            elementoUI = new Jugador(
+                    nombre, experiencia, salud, x, y, z, velocidad
+            );
+        } else if (tipo.equalsIgnoreCase("aldeano")) {
+            elementoUI = new Aldeano(
+                    salud, x, y, z, velocidad, true, profesion
+            );
+        } else {
+            throw new IllegalArgumentException(
+                    "Tipo válido: jugador o aldeano"
+            );
+        }
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("tipo", elementoUI.getClass().getSimpleName());
+        respuesta.put("imagen", elementoUI.getImagen());
+        respuesta.put("posicion", elementoUI.getPosicion());
+        respuesta.put("sonido", elementoUI.getSonido());
+        respuesta.put("velocidad", elementoUI.getVelocidad());
+        respuesta.put("mensaje", elementoUI.getMensajeUI());
 
         return respuesta;
     }
