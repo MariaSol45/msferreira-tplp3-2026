@@ -1,11 +1,20 @@
 package py.edu.uc.lp3.msferreira.minecraft.rest.controller;
 
+import java.net.URI;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,9 +24,42 @@ import py.edu.uc.lp3.msferreira.minecraft.domain.Creeper;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Entidad;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Jugador;
 import py.edu.uc.lp3.msferreira.minecraft.domain.UICapable;
+import py.edu.uc.lp3.msferreira.minecraft.service.EntidadService;
 
 @RestController
 public class EntidadController {
+    private final EntidadService entidadService;
+
+    public EntidadController(EntidadService entidadService) {
+        this.entidadService = entidadService;
+    }
+
+    @GetMapping("/entidades")
+    public List<Entidad> listar() {
+        return entidadService.listar();
+    }
+
+    @GetMapping("/entidades/{id}")
+    public Entidad obtener(@PathVariable Long id) {
+        return entidadService.obtener(id);
+    }
+
+    @PostMapping("/entidades")
+    public ResponseEntity<Entidad> crear(@RequestBody Entidad entidad) {
+        Entidad creada = entidadService.crear(entidad);
+        return ResponseEntity.created(URI.create("/entidades/" + creada.getId())).body(creada);
+    }
+
+    @PutMapping("/entidades/{id}")
+    public Entidad actualizar(@PathVariable Long id, @RequestBody Entidad entidad) {
+        return entidadService.actualizar(id, entidad);
+    }
+
+    @DeleteMapping("/entidades/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminar(@PathVariable Long id) {
+        entidadService.eliminar(id);
+    }
 
     @GetMapping("/entidad")
     public Map<String, Object> crearEntidad(
@@ -101,6 +143,15 @@ public class EntidadController {
     public Map<String, String> manejarEntradaInvalida(IllegalArgumentException excepcion) {
         Map<String, String> respuesta = new LinkedHashMap<>();
         respuesta.put("error", "Entrada inválida");
+        respuesta.put("mensaje", excepcion.getMessage());
+        return respuesta;
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> manejarEntidadNoEncontrada(NoSuchElementException excepcion) {
+        Map<String, String> respuesta = new LinkedHashMap<>();
+        respuesta.put("error", "Entidad no encontrada");
         respuesta.put("mensaje", excepcion.getMessage());
         return respuesta;
     }
