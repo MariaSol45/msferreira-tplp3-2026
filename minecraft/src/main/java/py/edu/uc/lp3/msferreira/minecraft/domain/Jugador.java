@@ -4,6 +4,10 @@ public class Jugador extends Entidad implements UICapable {
     private String nombre;
     private int nivelEXP;
 
+    public Jugador(String nombre) {
+        this(nombre, 0, 20, 0, 0, 0, 1);
+    }
+
     public Jugador(String nombre, int nivelEXP, int salud, double posicionX,
                    double posicionY, double posicionZ, int velocidad) {
         super(salud, posicionX, posicionY, posicionZ, velocidad);
@@ -18,6 +22,14 @@ public class Jugador extends Entidad implements UICapable {
 
         this.nombre = nombre;
         this.nivelEXP = nivelEXP;
+    }
+
+    public String getNombre() {
+        return nombre;
+    }
+
+    public int getNivelEXP() {
+        return nivelEXP;
     }
 
     public void construir() {
@@ -42,8 +54,8 @@ public class Jugador extends Entidad implements UICapable {
         return "Sonido del jugador";
     }
 
-@Override
-public String comportamiento() {
-    return "El jugador interactúa con el mundo.";
-}
+    @Override
+    public String comportamiento() {
+        return "El jugador " + nombre + " interactúa con el mundo con nivel de experiencia " + nivelEXP + ".";
+    }
 }

@@ -8,16 +8,24 @@ public class EntidadHostil extends Entidad {
                          int velocidad, double rangoDeteccion, int danoAtaque) {
         super(salud, posicionX, posicionY, posicionZ, velocidad);
 
-	if (!Double.isFinite(rangoDeteccion) || rangoDeteccion < 0) {
-		throw new IllegalArgumentException("El rango de detección debe ser finito y no negativo.");
-	}
+        if (!Double.isFinite(rangoDeteccion) || rangoDeteccion < 0) {
+            throw new IllegalArgumentException("El rango de detección debe ser finito y no negativo.");
+        }
 
-	if (danoAtaque <= 0) {
-		throw new IllegalArgumentException("El daño de ataque debe ser mayor que 0.");
-	}
+        if (danoAtaque <= 0) {
+            throw new IllegalArgumentException("El daño de ataque debe ser mayor que 0.");
+        }
 
         this.rangoDeteccion = rangoDeteccion;
         this.danoAtaque = danoAtaque;
+    }
+
+    public double getRangoDeteccion() {
+        return rangoDeteccion;
+    }
+
+    public int getDanoAtaque() {
+        return danoAtaque;
     }
 
     public void atacar(Entidad objetivo) {
@@ -40,8 +48,8 @@ public class EntidadHostil extends Entidad {
 
         atacar(objetivo);
     }
-@Override
-public String comportamiento() {
-    return "La entidad hostil ataca.";
-}
+    @Override
+    public String comportamiento() {
+        return "La entidad hostil ataca.";
+    }
 }

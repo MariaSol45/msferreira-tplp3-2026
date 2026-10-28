@@ -1,6 +1,10 @@
 package py.edu.uc.lp3.msferreira.minecraft.domain;
 
 public class Esqueleto extends EntidadHostil {
+    public Esqueleto(int salud) {
+        this(salud, 0, 0, 0, 1, 15, 4);
+    }
+
     public Esqueleto(int salud, double posicionX, double posicionY, double posicionZ,
                      int velocidad, double rangoDeteccion, int danoAtaque) {
         super(salud, posicionX, posicionY, posicionZ, velocidad, rangoDeteccion, danoAtaque);
@@ -8,5 +12,10 @@ public class Esqueleto extends EntidadHostil {
 
     public void dispararFlecha() {
         System.out.println("El esqueleto disparó una flecha.");
+    }
+
+    @Override
+    public String comportamiento() {
+        return "El esqueleto dispara flechas que causan " + getDanoAtaque() + " puntos de daño.";
     }
 }

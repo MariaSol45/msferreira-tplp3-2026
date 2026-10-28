@@ -19,7 +19,16 @@ public class Creeper extends EntidadHostil {
         this.tiempoExplosion = tiempoExplosion;
     }
 
+    public int getTiempoExplosion() {
+        return tiempoExplosion;
+    }
+
     public void explotar() {
         System.out.println("El creeper explotará en " + tiempoExplosion + " segundos.");
+    }
+
+    @Override
+    public String comportamiento() {
+        return "El creeper se acerca en silencio y explota en " + tiempoExplosion + " segundos.";
     }
 }
