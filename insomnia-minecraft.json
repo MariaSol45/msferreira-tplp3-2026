@@ -1,0 +1,281 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-29T17:00:00.000Z",
+  "__export_source": "minecraft-api",
+  "resources": [
+    {
+      "_id": "wrk_minecraft",
+      "parentId": null,
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "name": "Minecraft API",
+      "description": "CRUD de entidades y simulación de explosiones",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_minecraft",
+      "parentId": "wrk_minecraft",
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:8080",
+        "entidad_id": 1
+      },
+      "dataPropertyOrder": null,
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1,
+      "_type": "environment"
+    },
+    {
+      "_id": "req_estado",
+      "parentId": "wrk_minecraft",
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "url": "{{ _.base_url }}/",
+      "name": "Estado de la API",
+      "description": "Comprueba que la aplicación esté disponible.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_crear_entidad",
+      "parentId": "wrk_minecraft",
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "url": "{{ _.base_url }}/entidades",
+      "name": "CRUD - Crear entidad",
+      "description": "Guarda una entidad en H2. Copiar el id de la respuesta a entidad_id si no es 1.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"salud\": 20,\n  \"posicionX\": 1,\n  \"posicionY\": 2,\n  \"posicionZ\": 3,\n  \"velocidad\": 4\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_listar_entidades",
+      "parentId": "wrk_minecraft",
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "url": "{{ _.base_url }}/entidades",
+      "name": "CRUD - Listar entidades",
+      "description": "Lista los registros almacenados en H2.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_obtener_entidad",
+      "parentId": "wrk_minecraft",
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "url": "{{ _.base_url }}/entidades/{{ _.entidad_id }}",
+      "name": "CRUD - Obtener entidad",
+      "description": "Obtiene una entidad por id.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 400,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_actualizar_entidad",
+      "parentId": "wrk_minecraft",
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "url": "{{ _.base_url }}/entidades/{{ _.entidad_id }}",
+      "name": "CRUD - Actualizar entidad",
+      "description": "Reemplaza los datos editables de una entidad.",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"salud\": 30,\n  \"posicionX\": 4,\n  \"posicionY\": 5,\n  \"posicionZ\": 6,\n  \"velocidad\": 7\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 500,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_eliminar_entidad",
+      "parentId": "wrk_minecraft",
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "url": "{{ _.base_url }}/entidades/{{ _.entidad_id }}",
+      "name": "CRUD - Eliminar entidad",
+      "description": "Elimina una entidad y devuelve 204.",
+      "method": "DELETE",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 600,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_explosion_exitosa",
+      "parentId": "wrk_minecraft",
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "url": "{{ _.base_url }}/explosiones/simular",
+      "name": "Explosión - Caso exitoso",
+      "description": "El Creeper está preparado y ambos objetivos están dentro del radio.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tiempoTranscurrido\": 3,\n  \"posicionXJugador\": 2,\n  \"posicionXAldeano\": 4\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 700,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_explosion_no_preparada",
+      "parentId": "wrk_minecraft",
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "url": "{{ _.base_url }}/explosiones/simular",
+      "name": "Explosión - Error 409",
+      "description": "Viola la regla del tiempo de detonación.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tiempoTranscurrido\": 2,\n  \"posicionXJugador\": 2,\n  \"posicionXAldeano\": 4\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 800,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_objetivo_fuera_rango",
+      "parentId": "wrk_minecraft",
+      "modified": 1793293200000,
+      "created": 1793293200000,
+      "url": "{{ _.base_url }}/explosiones/simular",
+      "name": "Explosión - Error 422",
+      "description": "Viola la regla del radio porque el Aldeano está a 6 bloques y el radio es 5.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tiempoTranscurrido\": 3,\n  \"posicionXJugador\": 2,\n  \"posicionXAldeano\": 6\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 900,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 package py.edu.uc.lp3.msferreira.minecraft.domain;
 
-public class EntidadHostil extends Entidad {
+public abstract class EntidadHostil extends Entidad {
     private double rangoDeteccion;
     private int danoAtaque;
 
@@ -49,7 +49,5 @@ public class EntidadHostil extends Entidad {
         atacar(objetivo);
     }
     @Override
-    public String comportamiento() {
-        return "La entidad hostil ataca.";
-    }
+    public abstract String comportamiento();
 }

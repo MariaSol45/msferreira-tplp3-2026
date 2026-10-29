@@ -1,6 +1,6 @@
 package py.edu.uc.lp3.msferreira.minecraft.domain;
 
-public class EntidadPasiva extends Entidad {
+public abstract class EntidadPasiva extends Entidad {
     private boolean domesticable;
 
     public EntidadPasiva(int salud, double posicionX, double posicionY, double posicionZ,
@@ -17,7 +17,5 @@ public class EntidadPasiva extends Entidad {
         System.out.println("La entidad pasiva está huyendo de una amenaza.");
     }
     @Override
-    public String comportamiento() {
-        return "La entidad pasiva huye.";
-    }
+    public abstract String comportamiento();
 }

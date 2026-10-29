@@ -86,6 +86,17 @@ public class Entidad {
         return "(" + posicionX + ", " + posicionY + ", " + posicionZ + ")";
     }
 
+    public double distanciaA(Entidad otra) {
+        if (otra == null) {
+            throw new IllegalArgumentException("La otra entidad no puede ser nula.");
+        }
+
+        double diferenciaX = posicionX - otra.posicionX;
+        double diferenciaY = posicionY - otra.posicionY;
+        double diferenciaZ = posicionZ - otra.posicionZ;
+        return Math.sqrt(diferenciaX * diferenciaX + diferenciaY * diferenciaY + diferenciaZ * diferenciaZ);
+    }
+
     public int getVelocidad() {
         return velocidad;
     }
