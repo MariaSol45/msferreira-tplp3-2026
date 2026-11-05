@@ -1,7 +1,15 @@
 package py.edu.uc.lp3.msferreira.minecraft.domain;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "entidades_pasivas")
 public abstract class EntidadPasiva extends Entidad {
     private boolean domesticable;
+
+    protected EntidadPasiva() {
+    }
 
     public EntidadPasiva(int salud, double posicionX, double posicionY, double posicionZ,
                          int velocidad, boolean domesticable) {
@@ -11,6 +19,11 @@ public abstract class EntidadPasiva extends Entidad {
 
     public boolean isDomesticable() {
         return domesticable;
+    }
+
+    @Override
+    protected void actualizarDatosEspecificos(Entidad datos) {
+        domesticable = ((EntidadPasiva) datos).domesticable;
     }
 
     public void huir(Entidad amenaza) {

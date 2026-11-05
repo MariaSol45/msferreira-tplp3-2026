@@ -31,7 +31,6 @@ public class EntidadService {
 
     public Entidad crear(Entidad entidad) {
         validar(entidad);
-        entidad.setId(null);
         return entidadRepository.save(entidad);
     }
 
@@ -39,11 +38,7 @@ public class EntidadService {
         validar(datos);
 
         Entidad entidad = obtener(id);
-        entidad.setSalud(datos.getSalud());
-        entidad.setPosicionX(datos.getPosicionX());
-        entidad.setPosicionY(datos.getPosicionY());
-        entidad.setPosicionZ(datos.getPosicionZ());
-        entidad.setVelocidad(datos.getVelocidad());
+        entidad.actualizarDesde(datos);
         return entidadRepository.save(entidad);
     }
 
@@ -56,16 +51,6 @@ public class EntidadService {
         if (entidad == null) {
             throw new IllegalArgumentException("La entidad es obligatoria.");
         }
-        if (entidad.getSalud() <= 0) {
-            throw new IllegalArgumentException("La salud debe ser mayor que 0.");
-        }
-        if (entidad.getVelocidad() < 0) {
-            throw new IllegalArgumentException("La velocidad no puede ser negativa.");
-        }
-        if (!Double.isFinite(entidad.getPosicionX())
-                || !Double.isFinite(entidad.getPosicionY())
-                || !Double.isFinite(entidad.getPosicionZ())) {
-            throw new IllegalArgumentException("Las coordenadas deben ser valores finitos.");
-        }
+        entidad.validarEstado();
     }
 }

@@ -1,12 +1,24 @@
 package py.edu.uc.lp3.msferreira.minecraft.domain;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import py.edu.uc.lp3.msferreira.minecraft.domain.exception.ExplosionNoPreparadaException;
 import py.edu.uc.lp3.msferreira.minecraft.domain.exception.ObjetivoFueraDeRangoException;
 
+@Entity
+@Table(name = "creepers")
+@JsonTypeName("creeper")
 public class Creeper extends EntidadHostil {
     private static final double RADIO_EXPLOSION_PREDETERMINADO = 5;
     private static final int DANO_EXPLOSION_PREDETERMINADO = 8;
     private int tiempoExplosion;
+
+    protected Creeper() {
+    }
 
     public Creeper(int salud, double posicionX, double posicionY, double posicionZ, int velocidad) {
         this(
@@ -20,8 +32,16 @@ public class Creeper extends EntidadHostil {
         this(salud, posicionX, posicionY, posicionZ, velocidad, rangoDeteccion, danoAtaque, 3);
     }
 
-    public Creeper(int salud, double posicionX, double posicionY, double posicionZ,
-                   int velocidad, double rangoDeteccion, int danoAtaque, int tiempoExplosion) {
+    @JsonCreator
+    public Creeper(
+            @JsonProperty("salud") int salud,
+            @JsonProperty("posicionX") double posicionX,
+            @JsonProperty("posicionY") double posicionY,
+            @JsonProperty("posicionZ") double posicionZ,
+            @JsonProperty("velocidad") int velocidad,
+            @JsonProperty("rangoDeteccion") double rangoDeteccion,
+            @JsonProperty("danoAtaque") int danoAtaque,
+            @JsonProperty("tiempoExplosion") int tiempoExplosion) {
         super(salud, posicionX, posicionY, posicionZ, velocidad, rangoDeteccion, danoAtaque);
 
         if (tiempoExplosion <= 0) {
@@ -41,6 +61,20 @@ public class Creeper extends EntidadHostil {
 
     public int getDanoExplosion() {
         return getDanoAtaque();
+    }
+
+    @Override
+    protected void actualizarDatosEspecificos(Entidad datos) {
+        super.actualizarDatosEspecificos(datos);
+        tiempoExplosion = ((Creeper) datos).tiempoExplosion;
+    }
+
+    @Override
+    public void validarEstado() {
+        super.validarEstado();
+        if (tiempoExplosion <= 0) {
+            throw new IllegalArgumentException("El tiempo de explosión debe ser mayor que 0.");
+        }
     }
 
     public void explotar() {

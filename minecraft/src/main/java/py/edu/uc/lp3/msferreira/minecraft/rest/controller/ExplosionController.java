@@ -20,16 +20,18 @@ public class ExplosionController {
     @PostMapping("/simular")
     public ResultadoExplosion simular(@RequestBody SolicitudExplosion solicitud) {
         return explosionService.simular(
-                solicitud.tiempoTranscurrido(),
-                solicitud.posicionXJugador(),
-                solicitud.posicionXAldeano()
+                solicitud.creeperId(),
+                solicitud.jugadorId(),
+                solicitud.aldeanoId(),
+                solicitud.tiempoTranscurrido()
         );
     }
 
     public record SolicitudExplosion(
-            int tiempoTranscurrido,
-            double posicionXJugador,
-            double posicionXAldeano
+            Long creeperId,
+            Long jugadorId,
+            Long aldeanoId,
+            int tiempoTranscurrido
     ) {
     }
 }

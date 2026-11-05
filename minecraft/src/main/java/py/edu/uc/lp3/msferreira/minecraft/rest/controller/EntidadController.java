@@ -8,6 +8,7 @@ import java.util.NoSuchElementException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -226,6 +227,16 @@ public class EntidadController {
         Map<String, String> respuesta = new LinkedHashMap<>();
         respuesta.put("error", "Entrada inválida");
         respuesta.put("mensaje", excepcion.getMessage());
+        return respuesta;
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> manejarJsonInvalido(HttpMessageNotReadableException excepcion) {
+        Throwable causa = excepcion.getMostSpecificCause();
+        Map<String, String> respuesta = new LinkedHashMap<>();
+        respuesta.put("error", "Entrada inválida");
+        respuesta.put("mensaje", causa.getMessage());
         return respuesta;
     }
 

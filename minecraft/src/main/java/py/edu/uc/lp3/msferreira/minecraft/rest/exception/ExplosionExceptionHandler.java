@@ -1,5 +1,7 @@
 package py.edu.uc.lp3.msferreira.minecraft.rest.exception;
 
+import java.util.NoSuchElementException;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -25,6 +27,18 @@ public class ExplosionExceptionHandler {
                 excepcion.getMessage(),
                 HttpStatus.UNPROCESSABLE_CONTENT.value()
         );
+    }
+
+    @ExceptionHandler(NoSuchElementException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorExplosion manejarEntidadNoEncontrada(NoSuchElementException excepcion) {
+        return new ErrorExplosion("Entidad no encontrada", excepcion.getMessage(), HttpStatus.NOT_FOUND.value());
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorExplosion manejarEntidadInvalida(IllegalArgumentException excepcion) {
+        return new ErrorExplosion("Entrada inválida", excepcion.getMessage(), HttpStatus.BAD_REQUEST.value());
     }
 
     public record ErrorExplosion(String error, String mensaje, int estado) {

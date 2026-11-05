@@ -1,13 +1,37 @@
 package py.edu.uc.lp3.msferreira.minecraft.domain;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.fasterxml.jackson.annotation.OptBoolean;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "entidades")
+@Inheritance(strategy = InheritanceType.JOINED)
+@JsonTypeInfo(
+        use = JsonTypeInfo.Id.NAME,
+        include = JsonTypeInfo.As.PROPERTY,
+        property = "tipo",
+        requireTypeIdForSubtypes = OptBoolean.FALSE
+)
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = Creeper.class, name = "creeper"),
+        @JsonSubTypes.Type(value = Jugador.class, name = "jugador"),
+        @JsonSubTypes.Type(value = Aldeano.class, name = "aldeano")
+})
+@JsonTypeName("entidad")
 public class Entidad {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,35 +43,25 @@ public class Entidad {
     private double posicionZ;
     private int velocidad;
 
-    public Entidad() {
+    protected Entidad() {
     }
 
-    public Entidad(int salud, double posicionX, double posicionY, double posicionZ, int velocidad) {
-        if (salud <= 0) {
-            throw new IllegalArgumentException("La salud debe ser mayor que 0.");
-        }
-
-        if (velocidad < 0) {
-            throw new IllegalArgumentException("La velocidad no puede ser negativa.");
-        }
-
-        if (!Double.isFinite(posicionX) || !Double.isFinite(posicionY) || !Double.isFinite(posicionZ)) {
-            throw new IllegalArgumentException("Las coordenadas deben ser valores finitos.");
-        }
-
-        this.salud = salud;
-        this.posicionX = posicionX;
-        this.posicionY = posicionY;
-        this.posicionZ = posicionZ;
-        this.velocidad = velocidad;
+    @JsonCreator
+    public Entidad(
+            @JsonProperty("salud") int salud,
+            @JsonProperty("posicionX") double posicionX,
+            @JsonProperty("posicionY") double posicionY,
+            @JsonProperty("posicionZ") double posicionZ,
+            @JsonProperty("velocidad") int velocidad) {
+        setSalud(salud);
+        setPosicionX(posicionX);
+        setPosicionY(posicionY);
+        setPosicionZ(posicionZ);
+        setVelocidad(velocidad);
     }
 
     public Long getId() {
         return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public int getSalud() {
@@ -55,6 +69,9 @@ public class Entidad {
     }
 
     public void setSalud(int salud) {
+        if (salud <= 0) {
+            throw new IllegalArgumentException("La salud debe ser mayor que 0.");
+        }
         this.salud = salud;
     }
 
@@ -63,6 +80,7 @@ public class Entidad {
     }
 
     public void setPosicionX(double posicionX) {
+        validarCoordenada(posicionX);
         this.posicionX = posicionX;
     }
 
@@ -71,6 +89,7 @@ public class Entidad {
     }
 
     public void setPosicionY(double posicionY) {
+        validarCoordenada(posicionY);
         this.posicionY = posicionY;
     }
 
@@ -79,6 +98,7 @@ public class Entidad {
     }
 
     public void setPosicionZ(double posicionZ) {
+        validarCoordenada(posicionZ);
         this.posicionZ = posicionZ;
     }
 
@@ -102,7 +122,55 @@ public class Entidad {
     }
 
     public void setVelocidad(int velocidad) {
+        if (velocidad < 0) {
+            throw new IllegalArgumentException("La velocidad no puede ser negativa.");
+        }
         this.velocidad = velocidad;
+    }
+
+    public final void actualizarDesde(Entidad datos) {
+        if (datos == null) {
+            throw new IllegalArgumentException("Los datos de la entidad son obligatorios.");
+        }
+        if (!getClass().equals(datos.getClass())) {
+            throw new IllegalArgumentException("No se puede cambiar el tipo de una entidad existente.");
+        }
+
+        datos.validarEstado();
+        setSalud(datos.getSalud());
+        setPosicionX(datos.getPosicionX());
+        setPosicionY(datos.getPosicionY());
+        setPosicionZ(datos.getPosicionZ());
+        setVelocidad(datos.getVelocidad());
+        actualizarDatosEspecificos(datos);
+        validarEstado();
+    }
+
+    protected void actualizarDatosEspecificos(Entidad datos) {
+    }
+
+    public void validarEstado() {
+        if (salud < 0) {
+            throw new IllegalArgumentException("La salud no puede ser negativa.");
+        }
+        if (velocidad < 0) {
+            throw new IllegalArgumentException("La velocidad no puede ser negativa.");
+        }
+        validarCoordenada(posicionX);
+        validarCoordenada(posicionY);
+        validarCoordenada(posicionZ);
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void validarAntesDePersistir() {
+        validarEstado();
+    }
+
+    private static void validarCoordenada(double coordenada) {
+        if (!Double.isFinite(coordenada)) {
+            throw new IllegalArgumentException("Las coordenadas deben ser valores finitos.");
+        }
     }
 
     public void mover() {
