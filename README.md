@@ -1,31 +1,26 @@
-# Minecraft - POO-06
+# Minecraft - POO-08
 
-Proyecto de Programación Orientada a Objetos desarrollado con Java 21 y Spring Boot. El dominio elegido es Minecraft y se utiliza para demostrar encapsulación, invariantes, herencia, abstracción, polimorfismo, sobrecarga y sobreescritura mediante una API REST observable.
+Servicio HTTP de Lenguaje de Programación 3 desarrollado con Java 21 y Spring Boot. El proyecto modela entidades de Minecraft y extiende el trabajo de POO-06 y POO-07 con persistencia polimórfica en H2, CRUD REST, una interfaz de dominio, dos reglas de explosión, una simulación transaccional, excepciones específicas y una colección de Insomnia reproducible.
 
 ## Objetivo
 
-Modelar distintos tipos de entidades de Minecraft con reglas de dominio protegidas y exponer parte de su comportamiento mediante endpoints HTTP que devuelven JSON. El proyecto también incluye pruebas unitarias y de integración para verificar los conceptos de POO, las validaciones y los códigos HTTP.
+Persistir y consultar una familia de entidades, ejecutar una explosión entre un `Creeper`, un `Jugador` y un `Aldeano`, guardar el daño resultante y representar por HTTP los casos válidos y las violaciones de las reglas del juego.
 
-## Dominio
+Las dos reglas propias son:
 
-El dominio elegido es Minecraft. La jerarquía representa entidades hostiles, entidades pasivas, jugadores y especializaciones reconocibles del juego.
+1. Un Creeper solo puede explotar cuando el tiempo transcurrido alcanza su tiempo de detonación.
+2. Cada objetivo debe estar dentro del radio del Creeper antes de aplicar daño; todos los objetivos se prevalidan para evitar resultados parciales.
 
-## Tecnologías y requisitos
+Fuentes verificadas: [enunciado oficial POO-08](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/ejercicio-poo-08-crud-h2-insomnia-2026-10-28.md) y [rúbrica LP3 2026](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/RUBRICA-ejercicios-lp3-2026.md).
+
+## Tecnologías
 
 - JDK 21.
 - Spring Boot 4.1.1.
 - Spring Web MVC.
-- Spring Data JPA y H2.
-- Maven Wrapper incluido en el repositorio.
-- No es necesario instalar Maven globalmente.
-
-Para comprobar las versiones disponibles:
-
-```bash
-java -version
-cd minecraft
-./mvnw --version
-```
+- Spring Data JPA.
+- H2 persistente en desarrollo y H2 en memoria para pruebas.
+- Maven Wrapper incluido.
 
 ## Ejecución
 
@@ -36,30 +31,79 @@ cd minecraft
 ./mvnw spring-boot:run
 ```
 
-La aplicación queda disponible en `http://localhost:8080`.
+La API queda disponible en `http://localhost:8080`.
+
+Para verificar las herramientas:
+
+```bash
+java -version
+cd minecraft
+./mvnw --version
+```
+
+## Configuración H2
+
+El archivo `minecraft/src/main/resources/application.properties` contiene:
+
+| Propiedad | Función |
+|---|---|
+| `spring.application.name=minecraft` | Identifica la aplicación dentro de Spring Boot. |
+| `spring.datasource.url=jdbc:h2:file:./data/entidades` | Guarda la base en `minecraft/data/entidades.mv.db` cuando la aplicación se inicia desde `minecraft`. |
+| `spring.datasource.driver-class-name=org.h2.Driver` | Selecciona el driver JDBC de H2. |
+| `spring.datasource.username=sa` | Define el usuario de desarrollo. |
+| `spring.datasource.password=` | Usa contraseña vacía solo para este entorno académico local. |
+| `spring.jpa.hibernate.ddl-auto=update` | Conserva los datos y actualiza el esquema cuando cambia el modelo; no reinicia la base en cada arranque. |
+| `spring.h2.console.enabled=true` | Habilita la consola web de H2. |
+
+La consola está en `http://localhost:8080/h2-console`:
+
+- JDBC URL: `jdbc:h2:file:./data/entidades`
+- Usuario: `sa`
+- Contraseña: vacía
+
+Tablas principales: `ENTIDADES`, `ENTIDADES_GENERICAS`, `ENTIDADES_HOSTILES`, `CREEPERS`, `JUGADORES`, `ENTIDADES_PASIVAS` y `ALDEANOS`.
+
+Las pruebas no usan ese archivo. `minecraft/src/test/resources/application.properties` configura `jdbc:h2:mem:minecraft-test`, `ddl-auto=create-drop` y deshabilita la consola.
 
 ## Pruebas
 
-Desde la raíz del repositorio:
-
 ```bash
 cd minecraft
-./mvnw clean test
+./mvnw test
 ```
 
-El estado documentado contiene 58 pruebas automatizadas: 1 de contexto, 16 de dominio, 5 de servicio y 36 ejecuciones de integración con MockMvc. Las pruebas usan una base H2 en memoria separada de la base de desarrollo.
+El estado documentado tiene 68 ejecuciones JUnit:
+
+| Categoría | Ejecuciones |
+|---|---:|
+| Contexto de Spring | 1 |
+| Dominio | 16 |
+| Servicio | 5 |
+| Integración con MockMvc | 46 |
+| **Total** | **68** |
+
+También se verificó la suite con orden aleatorio mediante `./mvnw -Dsurefire.runOrder=random test`.
 
 ## API REST
 
+### Resumen
+
+| Método | Ruta | Resultado principal |
+|---|---|---|
+| `GET` | `/` | Estado de la aplicación. |
+| `GET` | `/entidad` | Construcción transitoria de seis tipos del dominio. |
+| `GET` | `/entidad/atacar` | Demostración de los métodos `atacar` sobrecargados. |
+| `GET` | `/ui` | Lectura polimórfica mediante `UICapable`. |
+| `GET` | `/entidades` | Lista la familia persistida. |
+| `GET` | `/entidades/{id}` | Obtiene una entidad persistida. |
+| `POST` | `/entidades` | Crea una entidad y devuelve 201. |
+| `PUT` | `/entidades/{id}` | Reemplaza los datos de una entidad del mismo subtipo. |
+| `DELETE` | `/entidades/{id}` | Elimina físicamente una entidad y devuelve 204. |
+| `POST` | `/explosiones/simular` | Ejecuta y persiste una explosión. |
+
 ### GET /
 
-Comprueba que la API está funcionando.
-
-```bash
-curl -i "http://localhost:8080/"
-```
-
-Respuesta esperada, con estado `200 OK`:
+Respuesta `200 OK`:
 
 ```json
 {
@@ -71,171 +115,432 @@ Respuesta esperada, con estado `200 OK`:
 
 ### GET /entidad
 
-Construye temporalmente un `Creeper`, `Zombie`, `Esqueleto`, `Aldeano`, `Animal` o `Jugador` a partir de parámetros de la URL. El controlador mantiene la referencia con el tipo padre `Entidad` e invoca `comportamiento()` polimórficamente.
+Construye un objeto transitorio y llama `comportamiento()` mediante una referencia `Entidad`. No guarda datos.
 
-| Parámetro | Obligatorio | Valor predeterminado | Regla |
+| Parámetro | Obligatorio | Predeterminado | Uso |
 |---|---|---|---|
 | `tipo` | Sí | Sin valor | `creeper`, `zombie`, `esqueleto`, `aldeano`, `animal` o `jugador`, sin distinguir mayúsculas. |
 | `salud` | Sí | Sin valor | Entero mayor que 0. |
-| `x` | No | `0` | Número finito. |
-| `y` | No | `0` | Número finito. |
-| `z` | No | `0` | Número finito. |
-| `velocidad` | No | `1` | Entero mayor o igual que 0. |
-| `rango` | No | `10` | Para Creeper: número finito mayor o igual que 0. |
-| `dano` | No | `5` | Para Creeper: entero mayor que 0. |
-| `tiempoExplosion` | No | `3` | Para Creeper: entero mayor que 0. |
-| `profesion` | No | `Granjero` | Para Aldeano: texto no vacío ni compuesto solo por espacios. |
+| `x`, `y`, `z` | No | `0` | Coordenadas finitas. |
+| `velocidad` | No | `1` | Entero no negativo. |
+| `rango` | No | `10` | Rango finito y no negativo de las entidades hostiles. |
+| `dano` | No | `5` | Daño positivo de las entidades hostiles. |
+| `tiempoExplosion` | No | `3` por constructor | Tiempo positivo del Creeper. |
+| `profesion` | No | `Granjero` | Profesión no vacía del Aldeano. |
+| `domesticable` | No | Aldeano `true`; Animal `false` | Estado de una entidad pasiva. |
+| `montar` | No | `false` | Estado propio de Animal. |
+| `nombre` | No | `Steve` | Nombre no vacío de Jugador. |
+| `experiencia` | No | `0` | Nivel no negativo de Jugador. |
 
-#### Creeper válido
+Ejemplo:
 
 ```bash
 curl -i "http://localhost:8080/entidad?tipo=creeper&salud=20&x=1&y=2&z=3&velocidad=4&rango=10&dano=5&tiempoExplosion=3"
 ```
 
+Respuesta `200 OK`:
+
 ```json
 {
   "tipo": "Creeper",
-  "comportamiento": "El creeper se acerca en silencio y explota en 3 segundos."
+  "salud": 20,
+  "posicion": "(1.0, 2.0, 3.0)",
+  "velocidad": 4,
+  "comportamiento": "El creeper se acerca en silencio y explota en 3 segundos.",
+  "constructor": "completo",
+  "rangoDeteccion": 10.0,
+  "danoAtaque": 5,
+  "tiempoExplosion": 3
 }
 ```
 
-#### Aldeano válido
+Un tipo desconocido, una invariante inválida o un parámetro requerido ausente produce `400 Bad Request`.
+
+### GET /entidad/atacar
+
+Sin `distancia` llama `atacar(Entidad)`. Con `distancia` llama `atacar(Entidad, double)` y valida el rango.
 
 ```bash
-curl -i "http://localhost:8080/entidad?tipo=aldeano&salud=20&profesion=Herrero"
+curl -i "http://localhost:8080/entidad/atacar?saludObjetivo=20&rango=10&dano=6&distancia=4"
 ```
 
 ```json
 {
-  "tipo": "Aldeano",
-  "comportamiento": "El aldeano de profesión Herrero comercia con los jugadores."
+  "atacante": "Creeper",
+  "variante": "atacar(Entidad, double)",
+  "saludInicial": 20,
+  "saludFinal": 14,
+  "danoAplicado": 6,
+  "distancia": 4.0
 }
 ```
 
-#### Tipo inválido
+### GET /ui
+
+El controller declara una referencia `UICapable` y puede asignarle un `Jugador` o un `Aldeano`.
 
 ```bash
-curl -i "http://localhost:8080/entidad?tipo=dragon&salud=20"
+curl -i "http://localhost:8080/ui?tipo=jugador&nombre=Alex&experiencia=12&salud=30&x=2"
 ```
-
-Respuesta esperada, con estado `400 Bad Request`:
 
 ```json
 {
-  "error": "Entrada inválida",
-  "mensaje": "Tipos válidos: creeper, zombie, esqueleto, aldeano, animal o jugador"
+  "tipo": "Jugador",
+  "imagen": "jugador.png",
+  "posicion": "(2.0, 0.0, 0.0)",
+  "sonido": "Sonido del jugador",
+  "velocidad": 1,
+  "mensaje": "Entidad visible en (2.0, 0.0, 0.0) con velocidad 1."
 }
 ```
-
-#### Estado de dominio inválido
-
-```bash
-curl -i "http://localhost:8080/entidad?tipo=creeper&salud=0"
-curl -i "http://localhost:8080/entidad?tipo=creeper&salud=20&x=NaN"
-curl -i "http://localhost:8080/entidad?tipo=creeper&salud=20&dano=0"
-```
-
-Los tres casos devuelven `400 Bad Request`. Los parámetros requeridos ausentes y los valores numéricos con formato inválido también son rechazados con 400 por Spring MVC.
 
 ### CRUD /entidades
 
-El CRUD conserva la persistencia de entidades genéricas mediante Spring Data JPA y H2.
+`Entidad` es una raíz abstracta. Jackson exige el discriminador `tipo` en `POST` y `PUT`:
 
-| Método | Ruta | Resultado esperado |
+| `tipo` | Clase | Campos propios |
 |---|---|---|
-| `GET` | `/entidades` | Lista las entidades persistidas. |
-| `GET` | `/entidades/{id}` | Obtiene una entidad o devuelve `404`. |
-| `POST` | `/entidades` | Crea una entidad y devuelve `201`. |
-| `PUT` | `/entidades/{id}` | Actualiza una entidad existente. |
-| `DELETE` | `/entidades/{id}` | Elimina una entidad y devuelve `204`. |
+| `entidad` | `EntidadGenerica` | Solo los campos comunes. |
+| `creeper` | `Creeper` | `rangoDeteccion`, `danoAtaque`, `tiempoExplosion`. |
+| `jugador` | `Jugador` | `nombre`, `nivelEXP`; también acepta el alias `experiencia`. |
+| `aldeano` | `Aldeano` | `domesticable`, `profesion`. |
 
-Ejemplo de creación:
+`EntidadGenerica` conserva la representación neutral de registros creados antes de volver abstracta la raíz. Los tres participantes persistentes de la simulación son Creeper, Jugador y Aldeano.
+
+Crear un Creeper:
 
 ```bash
 curl -i -X POST "http://localhost:8080/entidades" \
   -H "Content-Type: application/json" \
-  -d '{"salud":20,"posicionX":1,"posicionY":2,"posicionZ":3,"velocidad":4}'
-```
-
-### POST /explosiones/simular
-
-Simula una explosión transitoria en la que participan `Creeper`, `Jugador` y `Aldeano`. `Entidad` calcula la distancia euclidiana y `Creeper` valida el alcance y aplica el daño; el servicio coordina la prevalidación de todos los objetivos antes de modificar su salud.
-
-```bash
-curl -i -X POST "http://localhost:8080/explosiones/simular" \
-  -H "Content-Type: application/json" \
   -d '{
-    "tiempoTranscurrido": 3,
-    "posicionXJugador": 2,
-    "posicionXAldeano": 4
+    "tipo":"creeper",
+    "salud":20,
+    "posicionX":0,
+    "posicionY":0,
+    "posicionZ":0,
+    "velocidad":1,
+    "rangoDeteccion":5,
+    "danoAtaque":6,
+    "tiempoExplosion":3
   }'
 ```
 
-La respuesta `200 OK` informa las tres clases participantes, las distancias y la salud inicial y final de cada objetivo.
+La respuesta es `201 Created`, incluye el `id` generado y una cabecera `Location: /entidades/{id}`.
 
-La simulación usa las propiedades predeterminadas definidas por `Creeper`: tiempo de detonación de 3 segundos, radio de 5 bloques y 8 puntos de daño. Las posiciones X pueden ser positivas o negativas porque representan coordenadas del mundo; `Entidad.distanciaA()` calcula la distancia respecto del Creeper ubicado en el origen.
+Un cuerpo sin `tipo`, con un tipo desconocido o con estado inválido devuelve `400`. Un `GET`, `PUT` o `DELETE` sobre un ID inexistente devuelve `404`. El `PUT` no permite cambiar el subtipo existente.
 
-#### Reglas de la simulación
+### POST /explosiones/simular
 
-1. **Regla 1:** Un Creeper solo puede explotar cuando el tiempo transcurrido alcanza o supera su tiempo de detonación.
-2. **Regla 2:** El daño de una explosión solo puede aplicarse a entidades cuya distancia al Creeper no supere el radio de explosión.
+La simulación recibe IDs ya persistidos; no crea participantes ni recibe sus posiciones. `ExplosionService` carga y verifica los tipos, ejecuta las dos reglas y guarda la salud final del Jugador y del Aldeano dentro de una transacción.
 
-La primera violación produce `ExplosionNoPreparadaException` y `409 Conflict`. La segunda produce `ObjetivoFueraDeRangoException` y `422 Unprocessable Content`. Cada excepción tiene un handler específico en `ExplosionExceptionHandler`; no existe un handler general que oculte errores de programación.
+```json
+{
+  "creeperId": 1,
+  "jugadorId": 2,
+  "aldeanoId": 3,
+  "tiempoTranscurrido": 3
+}
+```
 
-### Consola H2
+Respuesta `200 OK` resumida:
 
-Con la aplicación iniciada, la consola está disponible en `http://localhost:8080/h2-console`.
+```json
+{
+  "evento": "Explosión de Creeper",
+  "clasesParticipantes": ["Creeper", "Jugador", "Aldeano"],
+  "creeperId": 1,
+  "tiempoExplosion": 3,
+  "tiempoTranscurrido": 3,
+  "radioExplosion": 5.0,
+  "danoBase": 6,
+  "objetivos": [
+    {
+      "tipo": "Jugador",
+      "id": 2,
+      "identificador": "Alex",
+      "distancia": 2.0,
+      "saludInicial": 30,
+      "saludFinal": 24,
+      "danoRecibido": 6
+    }
+  ]
+}
+```
 
-- JDBC URL: `jdbc:h2:file:./data/entidades`
-- Usuario: `sa`
-- Contraseña: vacía
-- Consulta: `SELECT * FROM ENTIDADES;`
+Los valores de tiempo, radio y daño salen del Creeper persistido. Las distancias se calculan en tres dimensiones entre las posiciones persistidas.
 
-La ruta de la base es relativa al directorio `minecraft`, por lo que la aplicación debe iniciarse desde allí.
+## Códigos HTTP
 
-### Colección Insomnia
+| Código | Caso |
+|---:|---|
+| `200` | Lecturas, construcción transitoria, interfaz, ataque, actualización y simulación válida. |
+| `201` | Entidad creada. |
+| `204` | Entidad eliminada. |
+| `400` | JSON, tipo, ID de tipo incorrecto o invariante inválida. |
+| `404` | Entidad inexistente. |
+| `409` | El Creeper todavía no alcanzó su tiempo de detonación. |
+| `422` | Al menos un objetivo está fuera del radio de explosión. |
 
-El archivo importable es `insomnia-minecraft.json` y contiene el CRUD completo, la simulación exitosa y las dos violaciones de dominio.
+Los errores del CRUD usan `error` y `mensaje`. Los errores manejados por `ExplosionExceptionHandler` usan `error`, `mensaje` y `estado`. No existe un handler genérico de `Exception` que oculte fallos inesperados.
 
-1. Iniciar la aplicación desde `minecraft` con `./mvnw spring-boot:run`.
-2. En Insomnia, seleccionar **Import**, elegir **File** e importar `insomnia-minecraft.json`.
-3. Ejecutar primero `CRUD - Crear entidad` y actualizar `entidad_id` en el ambiente si el identificador devuelto no es `1`.
-4. Ejecutar `Explosión - Caso exitoso`, `Explosión - Error 409` y `Explosión - Error 422`.
+## Colección Insomnia
 
-La colección fue preparada para importación. Los casos están verificados con MockMvc y `curl`; no fueron ejecutados manualmente desde la interfaz de Insomnia.
+Archivo: `insomnia/poo08-minecraft.json`.
 
-### Códigos HTTP
+La colección contiene 25 solicitudes distribuidas en preparación, consultas, simulación persistente, errores y limpieza. La estructura JSON fue validada estáticamente; no se afirma una importación gráfica desde Insomnia.
 
-| Código | Significado en esta API |
-|---|---|
-| `200 OK` | Solicitud válida y respuesta JSON generada. |
-| `201 Created` | Entidad creada y persistida en H2. |
-| `204 No Content` | Entidad eliminada. |
-| `400 Bad Request` | Tipo desconocido, parámetro ausente o mal formado, o incumplimiento de una invariante del dominio. |
-| `404 Not Found` | No existe la entidad solicitada. |
-| `409 Conflict` | El Creeper todavía no completó su tiempo de detonación. |
-| `422 Unprocessable Content` | Un objetivo queda fuera del radio de explosión. |
-| `500 Internal Server Error` | Error interno inesperado; no se utiliza para representar errores conocidos de entrada. |
+Orden reproducible:
 
-## Estructura de paquetes
+1. Iniciar la aplicación desde `minecraft`.
+2. Importar `insomnia/poo08-minecraft.json` con la opción de importar archivo.
+3. Ejecutar las tres creaciones y copiar los IDs devueltos a `creeper_id`, `jugador_id` y `aldeano_id` en `Base Environment`.
+4. Ejecutar las consultas iniciales y el endpoint `UICapable`.
+5. Ejecutar una sola vez la explosión válida y comprobar la salud con los GET posteriores.
+6. Ejecutar el POST inválido, el 404, el 409 y el GET que confirma que no hubo cambios.
+7. Mover el Aldeano con PUT, comprobarlo, provocar el 422 y verificar que no hubo daño parcial.
+8. Ejecutar la limpieza; el GET posterior al primer DELETE debe devolver 404.
+
+La colección usa IDs creados en la propia ejecución. No se deben sustituir por IDs adivinados o preexistentes.
+
+## Qué hay que pensar
+
+### Recurso y verbo
+
+El recurso principal es `entidades`. La colección se llama `/entidades`; el verbo HTTP expresa crear, leer, reemplazar o borrar. `/explosiones/simular` representa la acción de simulación pedida por la consigna y opera sobre entidades existentes.
+
+### Identidad
+
+La clave es `Entidad.id`, de tipo `Long`, anotada con `@Id` y `@GeneratedValue(IDENTITY)`. H2 asigna el valor. El JSON de creación debe omitir `id`; la respuesta 201 devuelve el identificador generado.
+
+### Herencia y tablas
+
+Se eligió `InheritanceType.JOINED`. Los atributos comunes viven en `ENTIDADES` y cada subtipo persistente agrega su tabla. Esta estrategia evita repetir salud, posición y velocidad, conserva una jerarquía polimórfica y permite consultarla mediante `EntidadRepository`; el costo aceptado es realizar joins.
+
+El subtipo JSON se distingue con la propiedad obligatoria `tipo` mediante `@JsonTypeInfo` y `@JsonSubTypes`. Ese valor pertenece al contrato JSON, no es una columna discriminadora de JPA.
+
+### Interfaz y repositorio
+
+`EntidadRepository` es una interfaz que extiende `JpaRepository<Entidad, Long>`. Spring Data genera su implementación, por lo que los servicios dependen de un contrato y no de SQL o de una clase concreta. `EntidadController` depende de `EntidadService`; el servicio encapsula el uso del repositorio y las transacciones.
+
+Esto se relaciona con `UICapable`: ambos son contratos. El repositorio abstrae persistencia; `UICapable` abstrae qué información visual puede pedir el endpoint.
+
+### Protocolo del dominio
+
+`UICapable` declara imagen, posición, sonido, velocidad y un mensaje predeterminado. `Jugador` y `Aldeano`, ubicados en ramas distintas del modelo, lo implementan. `GET /ui` usa una referencia `UICapable` y funciona con cualquiera de los dos.
+
+### Ocultamiento
+
+Constructores, setters validados, `validarEstado()`, callbacks `@PrePersist/@PreUpdate` y métodos del dominio sostienen las invariantes. El controller no asigna campos directamente. En Insomnia, el POST con `tiempoExplosion=0` devuelve 400 y el GET siguiente permite comparar la misma cantidad e IDs que antes del intento.
+
+### PUT y PATCH
+
+Se implementó `PUT`, no `PATCH`. El cuerpo representa el estado completo del mismo subtipo; `actualizarDesde` impide cambiar la clase. Jackson asigna valores Java predeterminados a campos omitidos: algunos incumplen invariantes y producen 400, mientras otros, como un booleano, pueden reemplazarse por `false`. Por eso el cliente debe enviar todos los campos del subtipo.
+
+### DELETE
+
+El borrado es físico. `EntidadService` verifica primero que el ID exista y luego llama `EntidadRepository.delete`. No hay una regla adicional de dominio para borrar; por eso el resultado se expresa con `204 No Content`, y un GET posterior devuelve 404.
+
+### Dos reglas
+
+`Creeper.explotar(int)` valida el tiempo y puede lanzar `ExplosionNoPreparadaException`. `Creeper.validarObjetivoDentroDelRadio(Entidad)` valida la distancia y puede lanzar `ObjetivoFueraDeRangoException`. Solo después de prevalidar ambos objetivos se aplica el daño. Un GET posterior muestra la salud persistida.
+
+### Excepciones
+
+`ExplosionException` es la base abstracta. Sus hijas nombran las dos reglas: `ExplosionNoPreparadaException` y `ObjetivoFueraDeRangoException`. La primera produce 409 y la segunda 422 mediante handlers separados. Un ID inexistente usa `NoSuchElementException` y produce 404; un ID nulo, de tipo incorrecto o un estado inválido usa `IllegalArgumentException` y produce 400.
+
+Las excepciones del dominio son no comprobadas porque extienden `RuntimeException`: no obligan a contaminar cada firma con `throws` y provocan rollback transaccional por defecto. Los errores HTTP contienen una categoría legible y el mensaje específico.
+
+## Herencia, sobrecarga y sobreescritura
+
+`Entidad` es abstracta y declara `comportamiento()`. `EntidadGenerica`, Creeper, Zombie, Esqueleto, Aldeano, Animal y Jugador aportan implementaciones concretas. `EntidadHostil` y `EntidadPasiva` mantienen el método abstracto en las categorías intermedias.
+
+La sobrecarga se observa en los tres constructores públicos de Creeper, de cinco, siete y ocho parámetros, y en `EntidadHostil.atacar(Entidad)` frente a `atacar(Entidad, double)`. La sobreescritura conserva la misma firma entre padre e hijas; la sobrecarga cambia la lista de parámetros.
+
+Los constructores sin argumentos de las entidades JPA son `protected`: Hibernate puede usarlos, pero no forman parte de la API pública de construcción del dominio.
+
+## Diagrama de clases
+
+```mermaid
+classDiagram
+    direction TB
+
+    class Entidad {
+        <<abstract Entity>>
+        -Long id
+        -int salud
+        -double posicionX
+        -double posicionY
+        -double posicionZ
+        -int velocidad
+        #Entidad()
+        #Entidad(int salud, double x, double y, double z, int velocidad)
+        +actualizarDesde(Entidad datos)
+        +validarEstado()
+        +distanciaA(Entidad otra) double
+        +recibirDano(int cantidad)
+        +comportamiento()* String
+    }
+    class EntidadGenerica {
+        <<Entity>>
+        +comportamiento() String
+    }
+    class EntidadHostil {
+        <<abstract Entity>>
+        -double rangoDeteccion
+        -int danoAtaque
+        +atacar(Entidad objetivo)
+        +atacar(Entidad objetivo, double distancia)
+        +comportamiento()* String
+    }
+    class EntidadPasiva {
+        <<abstract Entity>>
+        -boolean domesticable
+        +huir(Entidad amenaza)
+        +comportamiento()* String
+    }
+    class Creeper {
+        <<Entity>>
+        -int tiempoExplosion
+        +explotar(int tiempoTranscurrido)
+        +validarObjetivoDentroDelRadio(Entidad objetivo)
+        +aplicarDanoExplosion(Entidad objetivo) int
+        +comportamiento() String
+    }
+    class Jugador {
+        <<Entity>>
+        -String nombre
+        -int nivelEXP
+        +comportamiento() String
+    }
+    class Aldeano {
+        <<Entity>>
+        -String profesion
+        +comportamiento() String
+    }
+    class Zombie {
+        <<transient>>
+        +comportamiento() String
+    }
+    class Esqueleto {
+        <<transient>>
+        +comportamiento() String
+    }
+    class Animal {
+        <<transient>>
+        +comportamiento() String
+    }
+    class UICapable {
+        <<interface>>
+        +getImagen() String
+        +getPosicion() String
+        +getSonido() String
+        +getVelocidad() int
+        +getMensajeUI() String
+    }
+
+    Entidad <|-- EntidadGenerica
+    Entidad <|-- EntidadHostil
+    Entidad <|-- EntidadPasiva
+    Entidad <|-- Jugador
+    EntidadHostil <|-- Creeper
+    EntidadHostil <|-- Zombie
+    EntidadHostil <|-- Esqueleto
+    EntidadPasiva <|-- Aldeano
+    EntidadPasiva <|-- Animal
+    UICapable <|.. Jugador
+    UICapable <|.. Aldeano
+
+    class EntidadRepository {
+        <<Repository interface>>
+        +findAll()
+        +findById(Long id)
+        +save(Entidad entidad)
+        +delete(Entidad entidad)
+    }
+    class EntidadService {
+        <<Service>>
+        +listar()
+        +obtener(Long id)
+        +crear(Entidad entidad)
+        +actualizar(Long id, Entidad datos)
+        +eliminar(Long id)
+    }
+    class ExplosionService {
+        <<Service>>
+        +simular(Long creeperId, Long jugadorId, Long aldeanoId, int tiempo)
+    }
+    class IndexController {
+        <<RestController>>
+        +index()
+    }
+    class EntidadController {
+        <<RestController>>
+        +listar()
+        +obtener(Long id)
+        +crear(Entidad entidad)
+        +actualizar(Long id, Entidad entidad)
+        +eliminar(Long id)
+        +crearEntidad(...)
+        +atacar(...)
+        +obtenerDatosUI(...)
+    }
+    class ExplosionController {
+        <<RestController>>
+        +simular(SolicitudExplosion solicitud)
+    }
+
+    EntidadController --> EntidadService
+    EntidadController ..> Entidad
+    EntidadController ..> UICapable
+    EntidadService --> EntidadRepository
+    EntidadRepository ..> Entidad
+    ExplosionController --> ExplosionService
+    ExplosionService --> EntidadRepository
+    ExplosionService ..> Creeper
+    ExplosionService ..> Jugador
+    ExplosionService ..> Aldeano
+
+    class RuntimeException
+    class ExplosionException {
+        <<abstract>>
+    }
+    class ExplosionNoPreparadaException
+    class ObjetivoFueraDeRangoException
+    class ExplosionExceptionHandler {
+        <<RestControllerAdvice>>
+        +manejarExplosionNoPreparada()
+        +manejarObjetivoFueraDeRango()
+        +manejarEntidadNoEncontrada()
+        +manejarEntidadInvalida()
+    }
+
+    RuntimeException <|-- ExplosionException
+    ExplosionException <|-- ExplosionNoPreparadaException
+    ExplosionException <|-- ObjetivoFueraDeRangoException
+    Creeper ..> ExplosionNoPreparadaException : lanza
+    Creeper ..> ObjetivoFueraDeRangoException : lanza
+    ExplosionExceptionHandler ..> ExplosionNoPreparadaException
+    ExplosionExceptionHandler ..> ObjetivoFueraDeRangoException
+```
+
+## Organización
 
 ```text
 py.edu.uc.lp3.msferreira.minecraft
 ├── MinecraftApplication.java
 ├── domain
 │   ├── Entidad.java
+│   ├── EntidadGenerica.java
 │   ├── EntidadHostil.java
 │   ├── EntidadPasiva.java
-│   ├── Jugador.java
-│   ├── Zombie.java
 │   ├── Creeper.java
-│   ├── Esqueleto.java
+│   ├── Jugador.java
 │   ├── Aldeano.java
+│   ├── Zombie.java
+│   ├── Esqueleto.java
 │   ├── Animal.java
+│   ├── UICapable.java
 │   └── exception
-│       ├── ExplosionException.java
-│       ├── ExplosionNoPreparadaException.java
-│       └── ObjetivoFueraDeRangoException.java
 ├── repository
 │   └── EntidadRepository.java
 ├── service
@@ -250,197 +555,23 @@ py.edu.uc.lp3.msferreira.minecraft
         └── ExplosionExceptionHandler.java
 ```
 
-`MinecraftApplication` permanece en el paquete raíz para que Spring descubra los controladores de los subpaquetes. El modelo de dominio está separado de la capa HTTP.
+## Entregables
 
-## Encapsulación e invariantes
+- Especificación actual: [ESPECIFICACION-POO08.md](ESPECIFICACION-POO08.md).
+- Especificación histórica: [ESPECIFICACION-POO06.md](ESPECIFICACION-POO06.md).
+- Bitácora de IA: [BITACORA.md](BITACORA.md).
+- Colección: [insomnia/poo08-minecraft.json](insomnia/poo08-minecraft.json).
+- Licencia: [Apache License 2.0](LICENSE).
 
-Los atributos del dominio son privados y se consultan o modifican mediante métodos. `recibirDano()` concentra la reducción de salud y garantiza que nunca quede por debajo de cero; los setters de `Entidad` se conservan para la deserialización JSON del CRUD y `EntidadService` valida los datos antes de persistirlos.
+El enlace exacto al commit se debe copiar en Classroom después de crear y publicar el commit final. El SHA anterior no representa cambios todavía no confirmados.
 
-Las invariantes generales del modelo son:
+## Verificación realizada
 
-- La salud inicial debe ser mayor que 0.
-- La velocidad no puede ser negativa.
-- Las coordenadas deben ser finitas; no se admiten `NaN` ni infinitos.
-- El rango debe ser finito y no negativo.
-- El daño y el tiempo de explosión deben ser mayores que 0.
-- El nombre y la profesión no pueden ser nulos ni estar en blanco.
-- La experiencia no puede ser negativa.
-- Un objetivo de ataque no puede ser nulo.
-- Un ataque con distancia exige una distancia finita, no negativa y dentro del rango.
-- `recibirDano` usa `Math.max(0, salud - cantidad)`, por lo que la salud nunca queda por debajo de 0.
-
-Las validaciones están en los constructores y métodos del dominio y, para los objetos deserializados por el CRUD, también en `EntidadService`; no se implementan directamente en los controladores.
-
-## Herencia y abstracción
-
-`Entidad` es la raíz concreta y persistible porque el CRUD crea y recupera directamente registros de este tipo. `EntidadHostil` y `EntidadPasiva` son abstractas porque representan categorías del juego, no criaturas que deban instanciarse por sí mismas. Las relaciones principales son:
-
-- `EntidadHostil`, `EntidadPasiva` y `Jugador` son entidades.
-- `Creeper`, `Zombie` y `Esqueleto` son entidades hostiles.
-- `Aldeano` y `Animal` son entidades pasivas.
-
-`domesticable` y `isDomesticable()` permanecen en `EntidadPasiva` para conservar los constructores y las respuestas existentes. En el dominio de Minecraft la capacidad se utiliza principalmente en animales; moverla ahora a `Animal` sería un cambio incompatible para el endpoint previo de aldeanos y se deja fuera de esta refactorización.
-
-La raíz también implementa `distanciaA(Entidad)`, ya que toda entidad conoce su posición tridimensional. `Creeper` utiliza esa operación para validar su radio y aplicar el daño de explosión; `ExplosionService` solamente coordina la detonación, prevalida todos los objetivos y construye la respuesta.
-
-## Polimorfismo
-
-`EntidadController` declara referencias de tipo `Entidad` y les asigna distintas especializaciones. `ExplosionService` conserva al `Jugador` y al `Aldeano` como referencias `Entidad`, mientras `Creeper` valida y afecta ambos objetivos sin depender de sus tipos concretos.
-
-Las pruebas también utilizan referencias `Entidad` para verificar respuestas distintas sin depender del tipo concreto.
-
-## Sobrecarga
-
-La sobrecarga ocurre cuando una clase declara métodos o constructores con el mismo nombre y distinta lista de parámetros.
-
-Se aplica en:
-
-- `Creeper`: constructores de cinco, siete y ocho parámetros. Los dos primeros delegan con `this(...)` y utilizan los valores predeterminados que correspondan.
-- `Creeper`: `explotar()` conserva el comportamiento previo y `explotar(int tiempoTranscurrido)` valida la detonación de la simulación.
-- `EntidadHostil`: `atacar(Entidad objetivo)` y `atacar(Entidad objetivo, double distancia)`.
-
-La variante con distancia comprueba el rango y luego delega el ataque en la variante de un argumento.
-
-## Sobreescritura
-
-La sobreescritura ocurre cuando una clase hija proporciona una implementación propia de un método heredado conservando la misma firma.
-
-`Entidad` declara `comportamiento()`. Las categorías abstractas vuelven a declararlo como abstracto y obligan a cada especialización a proporcionar su comportamiento:
-
-- `Creeper`, `Zombie` y `Esqueleto` describen estrategias hostiles diferentes.
-- `Aldeano` y `Animal` describen comportamientos pasivos diferentes.
-- `Jugador` describe la interacción del usuario con el mundo.
-
-### Diferencia entre sobrecarga y sobreescritura
-
-| Concepto | Sobrecarga | Sobreescritura |
-|---|---|---|
-| Ubicación | Normalmente en la misma clase. | Entre una clase padre y una hija. |
-| Firma | Mismo nombre y distintos parámetros. | Misma firma. |
-| Selección | Se resuelve según los argumentos de la llamada. | Se resuelve según el tipo real del objeto. |
-| Ejemplo | Los dos constructores de `Creeper` y los dos métodos `atacar`. | Las implementaciones de `comportamiento()`. |
-
-## Diagrama de clases
-
-```mermaid
-classDiagram
-    direction TB
-
-    class Entidad {
-        -Long id
-        -int salud
-        -double posicionX
-        -double posicionY
-        -double posicionZ
-        -int velocidad
-        +Entidad(int salud, double posicionX, double posicionY, double posicionZ, int velocidad)
-        +int getSalud()
-        +double distanciaA(Entidad otra)
-        +void mover()
-        +void recibirDano(int cantidad)
-        +void morir()
-        +String comportamiento()
-    }
-
-    class EntidadHostil {
-        <<abstract>>
-        -double rangoDeteccion
-        -int danoAtaque
-        +EntidadHostil(int salud, double posicionX, double posicionY, double posicionZ, int velocidad, double rangoDeteccion, int danoAtaque)
-        +void atacar(Entidad objetivo)
-        +void atacar(Entidad objetivo, double distancia)
-        +String comportamiento()*
-    }
-
-    class EntidadPasiva {
-        <<abstract>>
-        -boolean domesticable
-        +EntidadPasiva(int salud, double posicionX, double posicionY, double posicionZ, int velocidad, boolean domesticable)
-        +boolean isDomesticable()
-        +void huir(Entidad amenaza)
-        +String comportamiento()*
-    }
-
-    class Jugador {
-        -String nombre
-        -int nivelEXP
-        +Jugador(String nombre, int nivelEXP, int salud, double posicionX, double posicionY, double posicionZ, int velocidad)
-        +void construir()
-        +void craftear()
-        +void interactuar()
-        +String comportamiento()
-    }
-
-    class Zombie {
-        +Zombie(int salud, double posicionX, double posicionY, double posicionZ, int velocidad, double rangoDeteccion, int danoAtaque)
-        +void infectarAldeano()
-        +String comportamiento()
-    }
-
-    class Esqueleto {
-        +Esqueleto(int salud, double posicionX, double posicionY, double posicionZ, int velocidad, double rangoDeteccion, int danoAtaque)
-        +void dispararFlecha()
-        +String comportamiento()
-    }
-
-    class Creeper {
-        -int tiempoExplosion
-        +Creeper(int salud, double posicionX, double posicionY, double posicionZ, int velocidad)
-        +Creeper(int salud, double posicionX, double posicionY, double posicionZ, int velocidad, double rangoDeteccion, int danoAtaque)
-        +Creeper(int salud, double posicionX, double posicionY, double posicionZ, int velocidad, double rangoDeteccion, int danoAtaque, int tiempoExplosion)
-        +void explotar()
-        +void explotar(int tiempoTranscurrido)
-        +double getRadioExplosion()
-        +int getDanoExplosion()
-        +void validarObjetivoDentroDelRadio(Entidad objetivo)
-        +int aplicarDanoExplosion(Entidad objetivo)
-        +String comportamiento()
-    }
-
-    class Aldeano {
-        -String profesion
-        +Aldeano(int salud, double posicionX, double posicionY, double posicionZ, int velocidad, boolean domesticable, String profesion)
-        +void comercio()
-        +String comportamiento()
-    }
-
-    class Animal {
-        -boolean montar
-        +Animal(int salud, double posicionX, double posicionY, double posicionZ, int velocidad, boolean domesticable, boolean montar)
-        +String comportamiento()
-    }
-
-    class UICapable {
-        <<interface>>
-        +String getImagen()
-        +String getPosicion()
-        +String getSonido()
-        +int getVelocidad()
-        +String getMensajeUI()
-    }
-
-    Entidad <|-- EntidadHostil
-    Entidad <|-- EntidadPasiva
-    Entidad <|-- Jugador
-    EntidadHostil <|-- Zombie
-    EntidadHostil <|-- Esqueleto
-    EntidadHostil <|-- Creeper
-    EntidadPasiva <|-- Aldeano
-    EntidadPasiva <|-- Animal
-    UICapable <|.. Jugador
-    UICapable <|.. Aldeano
-```
+- Pruebas automatizadas normales y con orden aleatorio: 68 aprobadas, 0 fallidas.
+- Arranque contra H2 persistente y consultas GET de los subtipos existentes.
+- Validación estática del JSON, IDs internos, referencias padre y cuerpos de la colección Insomnia.
+- No se realizó importación gráfica de la colección porque Insomnia y `inso` no están instalados en este entorno.
 
 ## Licencia
 
 Este proyecto se distribuye bajo la [Apache License 2.0](LICENSE).
-
-## Uso de inteligencia artificial
-
-El registro de herramientas, modelo, prompts resumidos y tareas asistidas está disponible en [BITACORA.md](BITACORA.md).
-
-La especificación resumida para Classroom está disponible en [ESPECIFICACION-POO06.md](ESPECIFICACION-POO06.md).
-
-## Enlace al commit de entrega
-
-El enlace exacto al commit de entrega se proporcionará en Classroom después de realizar el último commit y push. No se incluye aquí un SHA autorreferencial porque cualquier modificación posterior de este archivo produciría un commit diferente.

@@ -24,6 +24,7 @@ import py.edu.uc.lp3.msferreira.minecraft.domain.Aldeano;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Animal;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Creeper;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Entidad;
+import py.edu.uc.lp3.msferreira.minecraft.domain.EntidadGenerica;
 import py.edu.uc.lp3.msferreira.minecraft.domain.EntidadHostil;
 import py.edu.uc.lp3.msferreira.minecraft.domain.EntidadPasiva;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Esqueleto;
@@ -158,7 +159,7 @@ public class EntidadController {
             @RequestParam(required = false) Double distancia) {
 
         Creeper atacante = new Creeper(20, 0, 0, 0, 1, rango, dano);
-        Entidad objetivo = new Entidad(saludObjetivo, 0, 0, 0, 1);
+        Entidad objetivo = new EntidadGenerica(saludObjetivo, 0, 0, 0, 1);
         int saludInicial = objetivo.getSalud();
         String variante;
 

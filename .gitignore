@@ -8,3 +8,4 @@ target/
 *.iws
 *.ipr
 minecraft/data/
+minecraft/bin/

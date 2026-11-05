@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Aldeano;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Creeper;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Entidad;
+import py.edu.uc.lp3.msferreira.minecraft.domain.EntidadGenerica;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Jugador;
 import py.edu.uc.lp3.msferreira.minecraft.repository.EntidadRepository;
 
@@ -44,6 +45,7 @@ class EntidadCrudIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "tipo": "entidad",
                                   "salud": 20,
                                   "posicionX": 1.5,
                                   "posicionY": 2.5,
@@ -54,6 +56,7 @@ class EntidadCrudIntegrationTests {
                 .andExpect(status().isCreated())
                 .andExpect(header().string("Location", org.hamcrest.Matchers.matchesPattern("/entidades/\\d+")))
                 .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.tipo").value("entidad"))
                 .andExpect(jsonPath("$.salud").value(20))
                 .andExpect(jsonPath("$.posicionX").value(1.5))
                 .andExpect(jsonPath("$.velocidad").value(4));
@@ -63,11 +66,12 @@ class EntidadCrudIntegrationTests {
 
     @Test
     void listaYObtieneUnaEntidad() throws Exception {
-        Entidad guardada = entidadRepository.save(new Entidad(15, 1, 2, 3, 2));
+        Entidad guardada = entidadRepository.save(new EntidadGenerica(15, 1, 2, 3, 2));
 
         mockMvc.perform(get("/entidades"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(guardada.getId()))
+                .andExpect(jsonPath("$[0].tipo").value("entidad"))
                 .andExpect(jsonPath("$[0].salud").value(15));
 
         mockMvc.perform(get("/entidades/{id}", guardada.getId()))
@@ -78,12 +82,13 @@ class EntidadCrudIntegrationTests {
 
     @Test
     void actualizaUnaEntidad() throws Exception {
-        Entidad guardada = entidadRepository.save(new Entidad(15, 1, 2, 3, 2));
+        Entidad guardada = entidadRepository.save(new EntidadGenerica(15, 1, 2, 3, 2));
 
         mockMvc.perform(put("/entidades/{id}", guardada.getId())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "tipo": "entidad",
                                   "salud": 30,
                                   "posicionX": 4,
                                   "posicionY": 5,
@@ -103,7 +108,7 @@ class EntidadCrudIntegrationTests {
 
     @Test
     void eliminaUnaEntidad() throws Exception {
-        Entidad guardada = entidadRepository.save(new Entidad(15, 1, 2, 3, 2));
+        Entidad guardada = entidadRepository.save(new EntidadGenerica(15, 1, 2, 3, 2));
 
         mockMvc.perform(delete("/entidades/{id}", guardada.getId()))
                 .andExpect(status().isNoContent());
@@ -124,6 +129,7 @@ class EntidadCrudIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "tipo": "entidad",
                                   "salud": 0,
                                   "posicionX": 1,
                                   "posicionY": 2,
@@ -136,6 +142,74 @@ class EntidadCrudIntegrationTests {
                 .andExpect(jsonPath("$.mensaje").value("La salud debe ser mayor que 0."));
 
         assertEquals(0, entidadRepository.count());
+    }
+
+    @Test
+    void rechazaCrearSinDiscriminadorYNoPersisteDatos() throws Exception {
+        mockMvc.perform(post("/entidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "salud": 20,
+                                  "posicionX": 1,
+                                  "posicionY": 2,
+                                  "posicionZ": 3,
+                                  "velocidad": 4
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Entrada inválida"));
+
+        assertEquals(0, entidadRepository.count());
+    }
+
+    @Test
+    void rechazaActualizarSinDiscriminadorYConservaElRegistro() throws Exception {
+        EntidadGenerica guardada = entidadRepository.save(new EntidadGenerica(15, 1, 2, 3, 2));
+
+        mockMvc.perform(put("/entidades/{id}", guardada.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "salud": 30,
+                                  "posicionX": 4,
+                                  "posicionY": 5,
+                                  "posicionZ": 6,
+                                  "velocidad": 7
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Entrada inválida"));
+
+        Entidad persistida = entidadRepository.findById(guardada.getId()).orElseThrow();
+        assertInstanceOf(EntidadGenerica.class, persistida);
+        assertEquals(15, persistida.getSalud());
+        assertEquals(3, persistida.getPosicionZ());
+    }
+
+    @Test
+    void rechazaActualizarConTipoDesconocidoYConservaElRegistro() throws Exception {
+        EntidadGenerica guardada = entidadRepository.save(new EntidadGenerica(15, 1, 2, 3, 2));
+
+        mockMvc.perform(put("/entidades/{id}", guardada.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tipo": "dragon",
+                                  "salud": 30,
+                                  "posicionX": 4,
+                                  "posicionY": 5,
+                                  "posicionZ": 6,
+                                  "velocidad": 7
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Entrada inválida"));
+
+        Entidad persistida = entidadRepository.findById(guardada.getId()).orElseThrow();
+        assertInstanceOf(EntidadGenerica.class, persistida);
+        assertEquals(15, persistida.getSalud());
+        assertEquals(3, persistida.getPosicionZ());
     }
 
     @Test

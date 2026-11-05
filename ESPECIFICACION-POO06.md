@@ -1,4 +1,6 @@
-# Especificación POO-06
+# Especificación POO-06 (histórica)
+
+Este documento corresponde al ejercicio anterior. La entrega actual se describe en [ESPECIFICACION-POO08.md](ESPECIFICACION-POO08.md).
 
 ## Objetivo
 
@@ -157,6 +159,8 @@ cd minecraft
 ```
 
 Resultado esperado para el estado documentado:
+
+Este conteo pertenece al estado histórico de POO-06. El estado actual de POO-08 se documenta con 68 ejecuciones en [ESPECIFICACION-POO08.md](ESPECIFICACION-POO08.md).
 
 ```text
 Tests run: 21, Failures: 0, Errors: 0, Skipped: 0

@@ -1,11 +1,7 @@
 package py.edu.uc.lp3.msferreira.minecraft.domain;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.OptBoolean;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -23,16 +19,15 @@ import jakarta.persistence.Table;
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
-        property = "tipo",
-        requireTypeIdForSubtypes = OptBoolean.FALSE
+        property = "tipo"
 )
 @JsonSubTypes({
+        @JsonSubTypes.Type(value = EntidadGenerica.class, name = "entidad"),
         @JsonSubTypes.Type(value = Creeper.class, name = "creeper"),
         @JsonSubTypes.Type(value = Jugador.class, name = "jugador"),
         @JsonSubTypes.Type(value = Aldeano.class, name = "aldeano")
 })
-@JsonTypeName("entidad")
-public class Entidad {
+public abstract class Entidad {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -46,13 +41,7 @@ public class Entidad {
     protected Entidad() {
     }
 
-    @JsonCreator
-    public Entidad(
-            @JsonProperty("salud") int salud,
-            @JsonProperty("posicionX") double posicionX,
-            @JsonProperty("posicionY") double posicionY,
-            @JsonProperty("posicionZ") double posicionZ,
-            @JsonProperty("velocidad") int velocidad) {
+    protected Entidad(int salud, double posicionX, double posicionY, double posicionZ, int velocidad) {
         setSalud(salud);
         setPosicionX(posicionX);
         setPosicionY(posicionY);
@@ -193,7 +182,5 @@ public class Entidad {
         System.out.println("La entidad ha muerto.");
     }
 
-    public String comportamiento() {
-        return "La entidad se comporta de forma neutral.";
-    }
+    public abstract String comportamiento();
 }

@@ -17,9 +17,12 @@ import py.edu.uc.lp3.msferreira.minecraft.domain.exception.ObjetivoFueraDeRangoE
 class JerarquiaDomainTests {
 
     @Test
-    void conservaEntidadConcretaYPersistenteConCategoriasAbstractas() {
+    void conservaRaizPersistenteYJerarquiaAbstracta() throws NoSuchMethodException {
         assertAll(
-                () -> assertFalse(Modifier.isAbstract(Entidad.class.getModifiers())),
+                () -> assertTrue(Modifier.isAbstract(Entidad.class.getModifiers())),
+                () -> assertTrue(Modifier.isAbstract(
+                        Entidad.class.getDeclaredMethod("comportamiento").getModifiers()
+                )),
                 () -> assertTrue(Entidad.class.isAnnotationPresent(Entity.class)),
                 () -> assertTrue(Modifier.isAbstract(EntidadHostil.class.getModifiers())),
                 () -> assertTrue(Modifier.isAbstract(EntidadPasiva.class.getModifiers()))
