@@ -3,6 +3,7 @@ package py.edu.uc.lp3.msferreira.minecraft.rest.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -65,6 +66,44 @@ class ExplosionControllerIntegrationTests {
     }
 
     @Test
+    void persisteSaludCeroYPermiteActualizarLaEntidadMuerta() throws Exception {
+        jugador = entidadRepository.save(new Jugador("Steve", 0, 8, 2, 0, 0, 0));
+
+        mockMvc.perform(post("/explosiones/simular")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(solicitud(3)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.objetivos[0].saludFinal").value(0));
+
+        mockMvc.perform(get("/entidades/{id}", jugador.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.salud").value(0));
+
+        mockMvc.perform(put("/entidades/{id}", jugador.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tipo": "jugador",
+                                  "nombre": "Alex",
+                                  "nivelEXP": 1,
+                                  "salud": 0,
+                                  "posicionX": 2,
+                                  "posicionY": 0,
+                                  "posicionZ": 0,
+                                  "velocidad": 0
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Alex"))
+                .andExpect(jsonPath("$.salud").value(0));
+
+        mockMvc.perform(get("/entidades/{id}", jugador.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.nombre").value("Alex"))
+                .andExpect(jsonPath("$.salud").value(0));
+    }
+
+    @Test
     void devuelveConflictYConservaLaSaludCuandoLaExplosionNoEstaPreparada() throws Exception {
         mockMvc.perform(post("/explosiones/simular")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -75,6 +114,34 @@ class ExplosionControllerIntegrationTests {
 
         assertEquals(20, entidadRepository.findById(jugador.getId()).orElseThrow().getSalud());
         assertEquals(20, entidadRepository.findById(aldeano.getId()).orElseThrow().getSalud());
+    }
+
+    @Test
+    void devuelveBadRequestCuandoFaltaElTiempoTranscurrido() throws Exception {
+        String solicitud = """
+                {
+                  "creeperId": %d,
+                  "jugadorId": %d,
+                  "aldeanoId": %d
+                }
+                """.formatted(creeper.getId(), jugador.getId(), aldeano.getId());
+
+        mockMvc.perform(post("/explosiones/simular")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(solicitud))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Entrada inválida"))
+                .andExpect(jsonPath("$.mensaje").value("El tiempo transcurrido es obligatorio."));
+    }
+
+    @Test
+    void devuelveBadRequestCuandoElTiempoTranscurridoEsNegativo() throws Exception {
+        mockMvc.perform(post("/explosiones/simular")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(solicitud(-1)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Entrada inválida"))
+                .andExpect(jsonPath("$.mensaje").value("El tiempo transcurrido no puede ser negativo."));
     }
 
     @Test

@@ -79,7 +79,7 @@ class EntidadDomainTests {
     void constructoresRechazanEstadosInvalidos() {
         assertAll(
                 () -> assertThrows(IllegalArgumentException.class,
-                        () -> new Creeper(0, 0, 0, 0, 1, 10, 5, 3)),
+                        () -> new Creeper(-1, 0, 0, 0, 1, 10, 5, 3)),
                 () -> assertThrows(IllegalArgumentException.class,
                         () -> new Creeper(20, Double.NaN, 0, 0, 1, 10, 5, 3)),
                 () -> assertThrows(IllegalArgumentException.class,

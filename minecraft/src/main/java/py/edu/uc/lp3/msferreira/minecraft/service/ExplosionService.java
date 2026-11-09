@@ -22,7 +22,9 @@ public class ExplosionService {
     }
 
     @Transactional
-    public ResultadoExplosion simular(Long creeperId, Long jugadorId, Long aldeanoId, int tiempoTranscurrido) {
+    public ResultadoExplosion simular(Long creeperId, Long jugadorId, Long aldeanoId, Integer tiempoTranscurrido) {
+        validarTiempoTranscurrido(tiempoTranscurrido);
+
         Creeper creeper = obtenerComo(creeperId, Creeper.class);
         Jugador jugador = obtenerComo(jugadorId, Jugador.class);
         Aldeano aldeano = obtenerComo(aldeanoId, Aldeano.class);
@@ -66,6 +68,15 @@ public class ExplosionService {
                 creeper.getDanoExplosion(),
                 impactos
         );
+    }
+
+    private void validarTiempoTranscurrido(Integer tiempoTranscurrido) {
+        if (tiempoTranscurrido == null) {
+            throw new IllegalArgumentException("El tiempo transcurrido es obligatorio.");
+        }
+        if (tiempoTranscurrido < 0) {
+            throw new IllegalArgumentException("El tiempo transcurrido no puede ser negativo.");
+        }
     }
 
     private <T extends Entidad> T obtenerComo(Long id, Class<T> tipoEsperado) {

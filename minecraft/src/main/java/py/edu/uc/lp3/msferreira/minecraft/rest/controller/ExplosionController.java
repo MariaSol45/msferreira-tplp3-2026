@@ -31,7 +31,7 @@ public class ExplosionController {
             Long creeperId,
             Long jugadorId,
             Long aldeanoId,
-            int tiempoTranscurrido
+            Integer tiempoTranscurrido
     ) {
     }
 }

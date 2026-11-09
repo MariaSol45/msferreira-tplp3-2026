@@ -124,13 +124,13 @@ class EntidadCrudIntegrationTests {
     }
 
     @Test
-    void rechazaUnaEntidadConSaludInvalida() throws Exception {
+    void rechazaUnaEntidadConSaludNegativa() throws Exception {
         mockMvc.perform(post("/entidades")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "tipo": "entidad",
-                                  "salud": 0,
+                                  "salud": -1,
                                   "posicionX": 1,
                                   "posicionY": 2,
                                   "posicionZ": 3,
@@ -139,7 +139,7 @@ class EntidadCrudIntegrationTests {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Entrada inválida"))
-                .andExpect(jsonPath("$.mensaje").value("La salud debe ser mayor que 0."));
+                .andExpect(jsonPath("$.mensaje").value("La salud no puede ser negativa."));
 
         assertEquals(0, entidadRepository.count());
     }

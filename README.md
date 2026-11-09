@@ -72,15 +72,15 @@ cd minecraft
 ./mvnw test
 ```
 
-El estado documentado tiene 68 ejecuciones JUnit:
+El estado documentado tiene 71 ejecuciones JUnit:
 
 | Categoría | Ejecuciones |
 |---|---:|
 | Contexto de Spring | 1 |
 | Dominio | 16 |
 | Servicio | 5 |
-| Integración con MockMvc | 46 |
-| **Total** | **68** |
+| Integración con MockMvc | 49 |
+| **Total** | **71** |
 
 También se verificó la suite con orden aleatorio mediante `./mvnw -Dsurefire.runOrder=random test`.
 
@@ -120,7 +120,7 @@ Construye un objeto transitorio y llama `comportamiento()` mediante una referenc
 | Parámetro | Obligatorio | Predeterminado | Uso |
 |---|---|---|---|
 | `tipo` | Sí | Sin valor | `creeper`, `zombie`, `esqueleto`, `aldeano`, `animal` o `jugador`, sin distinguir mayúsculas. |
-| `salud` | Sí | Sin valor | Entero mayor que 0. |
+| `salud` | Sí | Sin valor | Entero no negativo; `0` representa una entidad sin vida. |
 | `x`, `y`, `z` | No | `0` | Coordenadas finitas. |
 | `velocidad` | No | `1` | Entero no negativo. |
 | `rango` | No | `10` | Rango finito y no negativo de las entidades hostiles. |
@@ -232,6 +232,8 @@ Un cuerpo sin `tipo`, con un tipo desconocido o con estado inválido devuelve `4
 ### POST /explosiones/simular
 
 La simulación recibe IDs ya persistidos; no crea participantes ni recibe sus posiciones. `ExplosionService` carga y verifica los tipos, ejecuta las dos reglas y guarda la salud final del Jugador y del Aldeano dentro de una transacción.
+
+`tiempoTranscurrido` es obligatorio y no puede ser negativo; esos errores producen 400. Un valor no negativo menor que el tiempo de detonación incumple la regla del Creeper y produce 409.
 
 ```json
 {
@@ -567,7 +569,7 @@ El enlace exacto al commit se debe copiar en Classroom después de crear y publi
 
 ## Verificación realizada
 
-- Pruebas automatizadas normales y con orden aleatorio: 68 aprobadas, 0 fallidas.
+- Pruebas automatizadas normales y con orden aleatorio: 71 aprobadas, 0 fallidas.
 - Arranque contra H2 persistente y consultas GET de los subtipos existentes.
 - Validación estática del JSON, IDs internos, referencias padre y cuerpos de la colección Insomnia.
 - No se realizó importación gráfica de la colección porque Insomnia y `inso` no están instalados en este entorno.

@@ -58,8 +58,8 @@ public abstract class Entidad {
     }
 
     public void setSalud(int salud) {
-        if (salud <= 0) {
-            throw new IllegalArgumentException("La salud debe ser mayor que 0.");
+        if (salud < 0) {
+            throw new IllegalArgumentException("La salud no puede ser negativa.");
         }
         this.salud = salud;
     }

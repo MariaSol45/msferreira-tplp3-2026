@@ -90,7 +90,7 @@ El DELETE es físico. El servicio obtiene primero la entidad para producir 404 s
 
 ### Regla 1: tiempo de detonación
 
-`Creeper.explotar(int tiempoTranscurrido)` exige que el tiempo recibido sea mayor o igual que `tiempoExplosion`. Si no se cumple, lanza `ExplosionNoPreparadaException` y la API responde 409.
+`tiempoTranscurrido` es obligatorio y no puede ser negativo; esos errores de entrada producen 400. `Creeper.explotar(int tiempoTranscurrido)` exige que un valor no negativo sea mayor o igual que `tiempoExplosion`. Si no se cumple, lanza `ExplosionNoPreparadaException` y la API responde 409.
 
 ### Regla 2: radio de explosión
 
@@ -129,7 +129,7 @@ Las dos hijas son no comprobadas. Esta elección mantiene las firmas del dominio
 
 ## Invariantes
 
-- La salud inicial es mayor que 0; el daño puede reducirla hasta 0, nunca por debajo.
+- La salud es no negativa; el valor 0 representa una entidad sin vida y puede persistirse y actualizarse.
 - Las coordenadas son finitas.
 - La velocidad y la experiencia no son negativas.
 - El rango es finito y no negativo.
@@ -189,11 +189,11 @@ cd minecraft
 Resultado documentado:
 
 ```text
-Tests run: 68, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 71, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
-Las 68 ejecuciones cubren contexto, dominio, jerarquía abstracta, sobrecarga, interfaz, CRUD de subtipos, discriminador obligatorio, invariantes, actualización, eliminación, persistencia de explosión, IDs incorrectos, 404, 409, 422 y conservación de la salud ante errores. También se ejecutan con orden aleatorio.
+Las 71 ejecuciones cubren contexto, dominio, jerarquía abstracta, sobrecarga, interfaz, CRUD de subtipos, discriminador obligatorio, invariantes, actualización, eliminación, explosión letal con posterior PUT, validación del tiempo transcurrido, persistencia de explosión, IDs incorrectos, 404, 409, 422 y conservación de la salud ante errores. También se ejecutan con orden aleatorio.
 
 ## Entregables
 

@@ -158,7 +158,7 @@ class ControladoresIntegrationTests {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "/entidad?tipo=creeper&salud=0",
+            "/entidad?tipo=creeper&salud=-1",
             "/entidad?tipo=creeper&salud=20&x=NaN",
             "/entidad?tipo=creeper&salud=20&x=Infinity",
             "/entidad?tipo=creeper&salud=20&velocidad=-1",
