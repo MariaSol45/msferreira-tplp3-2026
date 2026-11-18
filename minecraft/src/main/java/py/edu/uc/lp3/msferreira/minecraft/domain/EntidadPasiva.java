@@ -21,11 +21,6 @@ public abstract class EntidadPasiva extends Entidad {
         return domesticable;
     }
 
-    @Override
-    protected void actualizarDatosEspecificos(Entidad datos) {
-        domesticable = ((EntidadPasiva) datos).domesticable;
-    }
-
     public void huir(Entidad amenaza) {
         System.out.println("La entidad pasiva está huyendo de una amenaza.");
     }

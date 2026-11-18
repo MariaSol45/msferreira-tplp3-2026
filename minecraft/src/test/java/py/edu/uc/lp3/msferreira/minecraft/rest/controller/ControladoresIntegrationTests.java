@@ -15,12 +15,18 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import py.edu.uc.lp3.msferreira.minecraft.domain.Jugador;
+import py.edu.uc.lp3.msferreira.minecraft.repository.EntidadRepository;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 class ControladoresIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private EntidadRepository entidadRepository;
 
     @Test
     void indexDevuelveJson() throws Exception {
@@ -221,6 +227,17 @@ class ControladoresIntegrationTests {
                 .andExpect(jsonPath("$.velocidad").value(2))
                 .andExpect(jsonPath("$.mensaje")
                         .value("El aldeano de profesión Herrero está en (4.0, 5.0, 6.0)."));
+    }
+
+    @Test
+    void uiPuedeUsarUnJugadorPersistido() throws Exception {
+        Jugador jugador = entidadRepository.save(new Jugador("Persistido", 7, 20, 8, 9, 10, 2));
+
+        mockMvc.perform(get("/ui").param("id", jugador.getId().toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tipo").value("Jugador"))
+                .andExpect(jsonPath("$.posicion").value("(8.0, 9.0, 10.0)"))
+                .andExpect(jsonPath("$.velocidad").value(2));
     }
 
     @Test

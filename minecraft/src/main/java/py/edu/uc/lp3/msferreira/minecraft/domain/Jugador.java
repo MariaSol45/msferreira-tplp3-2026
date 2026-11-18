@@ -32,15 +32,6 @@ public class Jugador extends Entidad implements UICapable {
             @JsonProperty("posicionZ") double posicionZ,
             @JsonProperty("velocidad") int velocidad) {
         super(salud, posicionX, posicionY, posicionZ, velocidad);
-
-        if (nombre == null || nombre.isBlank()) {
-            throw new IllegalArgumentException("El nombre no puede ser nulo ni estar en blanco.");
-        }
-
-        if (nivelEXP < 0) {
-            throw new IllegalArgumentException("El nivel de experiencia no puede ser negativo.");
-        }
-
         this.nombre = nombre;
         this.nivelEXP = nivelEXP;
     }
@@ -51,24 +42,6 @@ public class Jugador extends Entidad implements UICapable {
 
     public int getNivelEXP() {
         return nivelEXP;
-    }
-
-    @Override
-    protected void actualizarDatosEspecificos(Entidad datos) {
-        Jugador jugador = (Jugador) datos;
-        nombre = jugador.nombre;
-        nivelEXP = jugador.nivelEXP;
-    }
-
-    @Override
-    public void validarEstado() {
-        super.validarEstado();
-        if (nombre == null || nombre.isBlank()) {
-            throw new IllegalArgumentException("El nombre no puede ser nulo ni estar en blanco.");
-        }
-        if (nivelEXP < 0) {
-            throw new IllegalArgumentException("El nivel de experiencia no puede ser negativo.");
-        }
     }
 
     public void construir() {

@@ -3,7 +3,6 @@ package py.edu.uc.lp3.msferreira.minecraft.domain;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Modifier;
@@ -12,7 +11,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import jakarta.persistence.Entity;
-import py.edu.uc.lp3.msferreira.minecraft.domain.exception.ObjetivoFueraDeRangoException;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 
 class JerarquiaDomainTests {
 
@@ -24,6 +24,8 @@ class JerarquiaDomainTests {
                         Entidad.class.getDeclaredMethod("comportamiento").getModifiers()
                 )),
                 () -> assertTrue(Entidad.class.isAnnotationPresent(Entity.class)),
+                () -> assertEquals(InheritanceType.JOINED,
+                        Entidad.class.getAnnotation(Inheritance.class).strategy()),
                 () -> assertTrue(Modifier.isAbstract(EntidadHostil.class.getModifiers())),
                 () -> assertTrue(Modifier.isAbstract(EntidadPasiva.class.getModifiers()))
         );
@@ -72,22 +74,4 @@ class JerarquiaDomainTests {
         );
     }
 
-    @Test
-    void creeperCalculaAlcanceYAplicaDanoSobreReferenciasEntidad() {
-        Creeper creeper = new Creeper(20, 0, 0, 0, 0, 5, 8);
-        Entidad jugador = new Jugador("Steve", 0, 20, 3, 4, 0, 0);
-        Entidad aldeano = new Aldeano(20, 6, 0, 0, 0, true, "Granjero");
-
-        int danoAplicado = creeper.aplicarDanoExplosion(jugador);
-
-        assertAll(
-                () -> assertEquals(5, creeper.distanciaA(jugador)),
-                () -> assertEquals(8, danoAplicado),
-                () -> assertEquals(12, jugador.getSalud()),
-                () -> assertThrows(ObjetivoFueraDeRangoException.class,
-                        () -> creeper.aplicarDanoExplosion(aldeano)),
-                () -> assertThrows(IllegalArgumentException.class,
-                        () -> creeper.distanciaA(null))
-        );
-    }
 }

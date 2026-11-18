@@ -104,6 +104,41 @@ La solicitud pidió contrastar nuevamente el proyecto con las fuentes oficiales 
 - excluyó `minecraft/bin/` en `.gitignore` sin borrar la carpeta local;
 - validó estáticamente la colección, sin afirmar una importación gráfica.
 
+### 9 de noviembre de 2026 - estado evaluado
+
+El commit [`8cd5f741f377c8d22e323d818658807c440e889c`](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/8cd5f741f377c8d22e323d818658807c440e889c) permitió salud cero como estado posterior al daño, distinguió `tiempoTranscurrido` ausente o negativo y elevó la suite a 71 ejecuciones. Ese es el commit revisado por el profesor y se conserva como referencia histórica.
+
+### 18 de noviembre de 2026 - auditoría de la devolución docente
+
+OpenCode con `openai/gpt-5.6-sol` auditó el commit evaluado, el código actual, README, especificación, bitácora, pruebas, reportes Maven y colección Insomnia. También contrastó los límites de salud de Jugador, Creeper y Aldeano con fuentes de Minecraft vanilla.
+
+La auditoría confirmó que las 71 pruebas eran verdes, pero reforzaban supuestos incorrectos:
+
+- aceptaban Jugador con salud 30, 35 y 40;
+- no probaban POST con salud 0 o 5000 ni los límites 1 y 20;
+- exigían que constructores y entidades lanzaran excepciones;
+- invocaban daño, tiempo y radio directamente en el dominio;
+- no verificaban la ausencia de setters públicos;
+- no comprobaban físicamente las tablas `JOINED`;
+- `/ui` solo usaba instancias transitorias.
+
+### 18 de noviembre de 2026 - corrección integral
+
+Se aplicaron los siguientes cambios sin crear otro proyecto y sin modificar la H2 de desarrollo:
+
+- las entidades pasaron a representar estado y conservar comportamiento polimórfico descriptivo;
+- las validaciones, copia de estado, ataque y daño se trasladaron a `EntidadService`;
+- tiempo, radio, estado de participantes y excepciones de explosión se trasladaron a `ExplosionService`;
+- se eliminó `setSalud` y se agregó un escritor package-private para cambios ya validados;
+- POST distingue salud inicial positiva de salud posterior al daño, donde cero es válido;
+- Jugador, Creeper y Aldeano usan máximo vanilla de 20;
+- se agregó `findBySaludGreaterThan(0)` con pruebas;
+- `/ui?id=...` usa Jugador o Aldeano persistido y conserva el contrato transitorio anterior;
+- se ampliaron pruebas de servicio, MockMvc y persistencia `JOINED`;
+- se actualizaron README, especificación e Insomnia.
+
+La devolución específica pedía reglas en `service`, mientras el enunciado general original hablaba de reglas en métodos del dominio. Se dio prioridad a la devolución docente más reciente. La sobrecarga de ataque se preservó en `EntidadService`, y las firmas de constructores, herencia, abstracción, sobreescritura e interfaz se conservaron.
+
 ## Resumen de prompts
 
 Los prompts de las sesiones POO-08 solicitaron, en palabras resumidas:
@@ -112,6 +147,7 @@ Los prompts de las sesiones POO-08 solicitaron, en palabras resumidas:
 2. Analizar cómo restaurar la abstracción de `Entidad`, exigir subtipos JSON y preservar H2 antes de implementar.
 3. Implementar el plan aprobado con respaldo consistente, migración sin pérdida de IDs, pruebas normales y aleatorias, y sin operaciones Git.
 4. Completar la auditoría documental contra las consignas oficiales, actualizar README, Mermaid, bitácora, especificación, Insomnia y `.gitignore`, y volver a ejecutar pruebas.
+5. Corregir integralmente la devolución del profesor sin modificar historial Git ni la base H2 de desarrollo, con auditoría previa, reglas vanilla, pruebas de persistencia y verificación final.
 
 No se reconstruyen textualmente prompts de sesiones anteriores que no quedaron registrados. Los commits se usan para describir resultados verificables, no para inferir quién ejecutó cada comando.
 
@@ -125,6 +161,10 @@ No se reconstruyen textualmente prompts de sesiones anteriores que no quedaron r
 - Prevalidar ambos objetivos antes de aplicar daño y ejecutar la simulación dentro de una transacción.
 - Usar excepciones no comprobadas para reglas del dominio y handlers separados para 409 y 422.
 - Separar la H2 persistente de la H2 en memoria usada por pruebas.
+- Distinguir salud inicial de salud posterior al daño.
+- Mantener máximo 20 para Jugador, Creeper y Aldeano, sin inventar máximo para tipos genéricos.
+- Centralizar reglas en servicios según la devolución docente y dejar entidades sin callbacks ni validaciones.
+- Conservar el contrato REST y agregar `id` opcional a `/ui` para usar entidades persistidas.
 
 ## Evidencia y límites
 

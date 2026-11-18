@@ -4,13 +4,10 @@ import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,11 +24,11 @@ import py.edu.uc.lp3.msferreira.minecraft.domain.Entidad;
 import py.edu.uc.lp3.msferreira.minecraft.domain.EntidadGenerica;
 import py.edu.uc.lp3.msferreira.minecraft.domain.EntidadHostil;
 import py.edu.uc.lp3.msferreira.minecraft.domain.EntidadPasiva;
-import py.edu.uc.lp3.msferreira.minecraft.domain.Esqueleto;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Jugador;
 import py.edu.uc.lp3.msferreira.minecraft.domain.UICapable;
-import py.edu.uc.lp3.msferreira.minecraft.domain.Zombie;
 import py.edu.uc.lp3.msferreira.minecraft.service.EntidadService;
+import py.edu.uc.lp3.msferreira.minecraft.service.EntidadService.CreacionTransitoria;
+import py.edu.uc.lp3.msferreira.minecraft.service.EntidadService.ResultadoAtaque;
 
 @RestController
 public class EntidadController {
@@ -85,39 +82,11 @@ public class EntidadController {
             @RequestParam(defaultValue = "Steve") String nombre,
             @RequestParam(defaultValue = "0") int experiencia) {
 
-        Entidad entidad;
-        String constructorUtilizado = "completo";
-
-        if (tipo.equalsIgnoreCase("creeper")) {
-            if (tiempoExplosion == null) {
-                entidad = new Creeper(salud, x, y, z, velocidad, rango, dano);
-                constructorUtilizado = "simplificado";
-            } else {
-                entidad = new Creeper(salud, x, y, z, velocidad, rango, dano, tiempoExplosion);
-            }
-        } else if (tipo.equalsIgnoreCase("zombie")) {
-            entidad = new Zombie(salud, x, y, z, velocidad, rango, dano);
-        } else if (tipo.equalsIgnoreCase("esqueleto")) {
-            entidad = new Esqueleto(salud, x, y, z, velocidad, rango, dano);
-        } else if (tipo.equalsIgnoreCase("aldeano")) {
-            entidad = new Aldeano(
-                    salud, x, y, z, velocidad,
-                    domesticable == null || domesticable,
-                    profesion == null ? "Granjero" : profesion
-            );
-        } else if (tipo.equalsIgnoreCase("animal")) {
-            entidad = new Animal(
-                    salud, x, y, z, velocidad,
-                    domesticable != null && domesticable,
-                    montar != null && montar
-            );
-        } else if (tipo.equalsIgnoreCase("jugador")) {
-            entidad = new Jugador(nombre, experiencia, salud, x, y, z, velocidad);
-        } else {
-            throw new IllegalArgumentException(
-                    "Tipos válidos: creeper, zombie, esqueleto, aldeano, animal o jugador"
-            );
-        }
+        CreacionTransitoria creacion = entidadService.crearTransitoria(
+                tipo, salud, x, y, z, velocidad, rango, dano, tiempoExplosion,
+                profesion, domesticable, montar, nombre, experiencia
+        );
+        Entidad entidad = creacion.entidad();
 
         Map<String, Object> respuesta = new LinkedHashMap<>();
         respuesta.put("tipo", entidad.getClass().getSimpleName());
@@ -125,7 +94,7 @@ public class EntidadController {
         respuesta.put("posicion", entidad.getPosicion());
         respuesta.put("velocidad", entidad.getVelocidad());
         respuesta.put("comportamiento", entidad.comportamiento());
-        respuesta.put("constructor", constructorUtilizado);
+        respuesta.put("constructor", creacion.constructorUtilizado());
 
         if (entidad instanceof EntidadHostil hostil) {
             respuesta.put("rangoDeteccion", hostil.getRangoDeteccion());
@@ -158,25 +127,16 @@ public class EntidadController {
             @RequestParam(defaultValue = "5") int dano,
             @RequestParam(required = false) Double distancia) {
 
-        Creeper atacante = new Creeper(20, 0, 0, 0, 1, rango, dano);
-        Entidad objetivo = new EntidadGenerica(saludObjetivo, 0, 0, 0, 1);
-        int saludInicial = objetivo.getSalud();
-        String variante;
-
-        if (distancia == null) {
-            atacante.atacar(objetivo);
-            variante = "atacar(Entidad)";
-        } else {
-            atacante.atacar(objetivo, distancia);
-            variante = "atacar(Entidad, double)";
-        }
+        ResultadoAtaque resultado = distancia == null
+                ? entidadService.atacar(saludObjetivo, rango, dano)
+                : entidadService.atacar(saludObjetivo, rango, dano, distancia);
 
         Map<String, Object> respuesta = new LinkedHashMap<>();
-        respuesta.put("atacante", atacante.getClass().getSimpleName());
-        respuesta.put("variante", variante);
-        respuesta.put("saludInicial", saludInicial);
-        respuesta.put("saludFinal", objetivo.getSalud());
-        respuesta.put("danoAplicado", saludInicial - objetivo.getSalud());
+        respuesta.put("atacante", resultado.atacante().getClass().getSimpleName());
+        respuesta.put("variante", resultado.variante());
+        respuesta.put("saludInicial", resultado.saludInicial());
+        respuesta.put("saludFinal", resultado.saludFinal());
+        respuesta.put("danoAplicado", resultado.saludInicial() - resultado.saludFinal());
         if (distancia != null) {
             respuesta.put("distancia", distancia);
         }
@@ -185,7 +145,8 @@ public class EntidadController {
 
     @GetMapping("/ui")
     public Map<String, Object> obtenerDatosUI(
-            @RequestParam String tipo,
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String tipo,
             @RequestParam(defaultValue = "20") int salud,
             @RequestParam(defaultValue = "0") double x,
             @RequestParam(defaultValue = "0") double y,
@@ -195,21 +156,9 @@ public class EntidadController {
             @RequestParam(defaultValue = "0") int experiencia,
             @RequestParam(defaultValue = "Granjero") String profesion) {
 
-        UICapable elementoUI;
-
-        if (tipo.equalsIgnoreCase("jugador")) {
-            elementoUI = new Jugador(
-                    nombre, experiencia, salud, x, y, z, velocidad
-            );
-        } else if (tipo.equalsIgnoreCase("aldeano")) {
-            elementoUI = new Aldeano(
-                    salud, x, y, z, velocidad, true, profesion
-            );
-        } else {
-            throw new IllegalArgumentException(
-                    "Tipo válido: jugador o aldeano"
-            );
-        }
+        UICapable elementoUI = entidadService.obtenerElementoUI(
+                id, tipo, salud, x, y, z, velocidad, nombre, experiencia, profesion
+        );
 
         Map<String, Object> respuesta = new LinkedHashMap<>();
         respuesta.put("tipo", elementoUI.getClass().getSimpleName());
@@ -222,31 +171,4 @@ public class EntidadController {
         return respuesta;
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> manejarEntradaInvalida(IllegalArgumentException excepcion) {
-        Map<String, String> respuesta = new LinkedHashMap<>();
-        respuesta.put("error", "Entrada inválida");
-        respuesta.put("mensaje", excepcion.getMessage());
-        return respuesta;
-    }
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> manejarJsonInvalido(HttpMessageNotReadableException excepcion) {
-        Throwable causa = excepcion.getMostSpecificCause();
-        Map<String, String> respuesta = new LinkedHashMap<>();
-        respuesta.put("error", "Entrada inválida");
-        respuesta.put("mensaje", causa.getMessage());
-        return respuesta;
-    }
-
-    @ExceptionHandler(NoSuchElementException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public Map<String, String> manejarEntidadNoEncontrada(NoSuchElementException excepcion) {
-        Map<String, String> respuesta = new LinkedHashMap<>();
-        respuesta.put("error", "Entidad no encontrada");
-        respuesta.put("mensaje", excepcion.getMessage());
-        return respuesta;
-    }
 }

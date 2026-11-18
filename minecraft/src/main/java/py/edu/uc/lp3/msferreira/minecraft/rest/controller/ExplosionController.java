@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService;
 import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.ResultadoExplosion;
+import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.SolicitudExplosion;
 
 @RestController
 @RequestMapping("/explosiones")
@@ -19,19 +20,6 @@ public class ExplosionController {
 
     @PostMapping("/simular")
     public ResultadoExplosion simular(@RequestBody SolicitudExplosion solicitud) {
-        return explosionService.simular(
-                solicitud.creeperId(),
-                solicitud.jugadorId(),
-                solicitud.aldeanoId(),
-                solicitud.tiempoTranscurrido()
-        );
-    }
-
-    public record SolicitudExplosion(
-            Long creeperId,
-            Long jugadorId,
-            Long aldeanoId,
-            Integer tiempoTranscurrido
-    ) {
+        return explosionService.simular(solicitud);
     }
 }

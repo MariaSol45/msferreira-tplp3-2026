@@ -30,30 +30,11 @@ public class Aldeano extends EntidadPasiva implements UICapable {
             @JsonProperty("domesticable") boolean domesticable,
             @JsonProperty("profesion") String profesion) {
         super(salud, posicionX, posicionY, posicionZ, velocidad, domesticable);
-
-        if (profesion == null || profesion.isBlank()) {
-            throw new IllegalArgumentException("La profesión no puede ser nula ni estar en blanco.");
-        }
-
         this.profesion = profesion;
     }
 
     public String getProfesion() {
         return profesion;
-    }
-
-    @Override
-    protected void actualizarDatosEspecificos(Entidad datos) {
-        super.actualizarDatosEspecificos(datos);
-        profesion = ((Aldeano) datos).profesion;
-    }
-
-    @Override
-    public void validarEstado() {
-        super.validarEstado();
-        if (profesion == null || profesion.isBlank()) {
-            throw new IllegalArgumentException("La profesión no puede ser nula ni estar en blanco.");
-        }
     }
 
     public void comercio() {

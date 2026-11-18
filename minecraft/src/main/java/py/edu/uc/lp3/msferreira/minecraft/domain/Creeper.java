@@ -6,8 +6,6 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import py.edu.uc.lp3.msferreira.minecraft.domain.exception.ExplosionNoPreparadaException;
-import py.edu.uc.lp3.msferreira.minecraft.domain.exception.ObjetivoFueraDeRangoException;
 
 @Entity
 @Table(name = "creepers")
@@ -43,11 +41,6 @@ public class Creeper extends EntidadHostil {
             @JsonProperty("danoAtaque") int danoAtaque,
             @JsonProperty("tiempoExplosion") int tiempoExplosion) {
         super(salud, posicionX, posicionY, posicionZ, velocidad, rangoDeteccion, danoAtaque);
-
-        if (tiempoExplosion <= 0) {
-            throw new IllegalArgumentException("El tiempo de explosión debe ser mayor que 0.");
-        }
-
         this.tiempoExplosion = tiempoExplosion;
     }
 
@@ -63,44 +56,8 @@ public class Creeper extends EntidadHostil {
         return getDanoAtaque();
     }
 
-    @Override
-    protected void actualizarDatosEspecificos(Entidad datos) {
-        super.actualizarDatosEspecificos(datos);
-        tiempoExplosion = ((Creeper) datos).tiempoExplosion;
-    }
-
-    @Override
-    public void validarEstado() {
-        super.validarEstado();
-        if (tiempoExplosion <= 0) {
-            throw new IllegalArgumentException("El tiempo de explosión debe ser mayor que 0.");
-        }
-    }
-
     public void explotar() {
         System.out.println("El creeper explotará en " + tiempoExplosion + " segundos.");
-    }
-
-    public void explotar(int tiempoTranscurrido) {
-        if (tiempoTranscurrido < tiempoExplosion) {
-            throw new ExplosionNoPreparadaException(tiempoExplosion, tiempoTranscurrido);
-        }
-    }
-
-    public void validarObjetivoDentroDelRadio(Entidad objetivo) {
-        double distancia = distanciaA(objetivo);
-        if (distancia > getRadioExplosion()) {
-            throw new ObjetivoFueraDeRangoException(
-                    objetivo.getClass().getSimpleName(), distancia, getRadioExplosion()
-            );
-        }
-    }
-
-    public int aplicarDanoExplosion(Entidad objetivo) {
-        validarObjetivoDentroDelRadio(objetivo);
-        int saludInicial = objetivo.getSalud();
-        objetivo.recibirDano(getDanoExplosion());
-        return saludInicial - objetivo.getSalud();
     }
 
     @Override

@@ -2,50 +2,49 @@
 
 ## Identificación
 
-- Ejercicio: POO-08 - CRUD REST, H2, reglas de juego y excepciones.
-- Dominio: Minecraft.
 - Proyecto: `msferreira-tplp3-2026/minecraft`.
 - Tecnologías: Java 21, Spring Boot 4.1.1, Spring Web MVC, Spring Data JPA y H2.
-- Enunciado oficial: [ejercicio POO-08](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/ejercicio-poo-08-crud-h2-insomnia-2026-10-28.md).
-- Rúbrica oficial: [RUBRICA-ejercicios-lp3-2026.md](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/RUBRICA-ejercicios-lp3-2026.md).
+- Commit evaluado: [8cd5f741f377c8d22e323d818658807c440e889c](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/8cd5f741f377c8d22e323d818658807c440e889c).
+- Estado: corrección posterior a la evaluación, todavía sin SHA nuevo en este documento.
 
-Esta especificación corresponde a POO-08. [ESPECIFICACION-POO06.md](ESPECIFICACION-POO06.md) se conserva como documento histórico del ejercicio anterior.
+El enlace de la nueva revisión debe obtenerse después de crear y publicar manualmente el commit correspondiente.
 
-## Objetivo aplicado
+## Decisión ante la contradicción
 
-Publicar un servicio que persista una familia de entidades de Minecraft, permita CRUD polimórfico, exponga un protocolo de dominio, simule una explosión entre tres clases persistidas y traduzca dos violaciones de reglas a respuestas HTTP diferenciadas.
+El enunciado general original decía que las reglas del juego vivían en métodos del dominio. La devolución docente específica de esta corrección exige que las entidades representen estado y que validaciones, reglas y excepciones se ubiquen en `service`. Se aplica la devolución más reciente y específica.
 
-## Modelo seleccionado
+Para conservar lo aprobado:
 
-Las tres clases necesarias para la simulación son:
+- se mantienen herencia `JOINED`, abstracción, `comportamiento()`, sobreescritura, `UICapable` y las firmas de constructores;
+- la sobrecarga de ataque se conserva como `EntidadService.atacar(...)` con y sin distancia;
+- se eliminan de las entidades los métodos que ejecutaban reglas: `validarEstado`, callbacks JPA, `actualizarDesde`, `recibirDano`, `Creeper.explotar(int)`, validación de radio y aplicación de daño;
+- `Creeper.explotar()` sin argumentos permanece como comportamiento descriptivo histórico y no decide una operación persistente.
 
-- `Creeper`: origen de la explosión y dueño de las reglas de tiempo, radio y daño.
-- `Jugador`: primer objetivo y entidad persistida afectada.
-- `Aldeano`: segundo objetivo y entidad persistida afectada.
+## Modelo y persistencia
 
-`Entidad` es la raíz abstracta y persistente. `EntidadGenerica` es la hija neutral usada para representar registros históricos que antes no tenían subtipo concreto. `EntidadHostil` y `EntidadPasiva` son categorías abstractas. Zombie, Esqueleto y Animal permanecen en el modelo Java y en el endpoint transitorio, pero no forman parte del CRUD JPA.
+`Entidad` es abstracta y persistente. `EntidadGenerica` conserva registros históricos neutrales. Creeper, Jugador y Aldeano son los participantes persistidos de la simulación. Zombie, Esqueleto y Animal permanecen como tipos transitorios.
 
-## Persistencia
+Se usa `InheritanceType.JOINED`:
 
-Se utiliza `InheritanceType.JOINED`:
+| Tabla | Estado |
+|---|---|
+| `ENTIDADES` | ID, salud, posición y velocidad. |
+| `ENTIDADES_GENERICAS` | Subtipo neutral. |
+| `ENTIDADES_HOSTILES` | Rango y daño. |
+| `CREEPERS` | Tiempo de explosión. |
+| `JUGADORES` | Nombre y experiencia. |
+| `ENTIDADES_PASIVAS` | Domesticable. |
+| `ALDEANOS` | Profesión. |
 
-- `ENTIDADES` contiene ID, salud, posición y velocidad.
-- `ENTIDADES_GENERICAS` identifica el subtipo neutral.
-- `ENTIDADES_HOSTILES` contiene rango y daño.
-- `CREEPERS` contiene tiempo de explosión.
-- `JUGADORES` contiene nombre y experiencia.
-- `ENTIDADES_PASIVAS` contiene `domesticable`.
-- `ALDEANOS` contiene profesión.
+Los constructores JPA sin argumentos siguen siendo `protected`. Los campos son privados y JPA usa acceso por campo. No hay setters públicos de salud ni callbacks de validación.
 
-Cada clase JPA tiene constructor sin argumentos `protected`. Los constructores públicos o protegidos de negocio validan el estado. Los callbacks `@PrePersist` y `@PreUpdate` vuelven a validar antes de escribir una fila.
+`EntidadStateWriter` es package-private dentro de `service`. Solo copia campos o cambia salud; no contiene decisiones. Los servicios lo invocan después de validar, evitando exponer mutadores públicos en las entidades.
 
-`EntidadRepository` extiende `JpaRepository<Entidad, Long>`. Spring Data genera su implementación; el código no implementa manualmente consultas CRUD.
+## JSON e identidad
 
-## Identidad y JSON
+El ID es `Long`, generado con `IDENTITY`. Los servicios rechazan IDs nulos o no positivos. Un ID positivo inexistente devuelve 404.
 
-`Entidad.id` es un `Long` generado por H2 con estrategia `IDENTITY`. El cliente omite el ID al crear y recibe el valor en la respuesta 201.
-
-Jackson exige `tipo` para crear o actualizar:
+Jackson exige `tipo`:
 
 | Valor | Clase |
 |---|---|
@@ -54,49 +53,103 @@ Jackson exige `tipo` para crear o actualizar:
 | `jugador` | `Jugador` |
 | `aldeano` | `Aldeano` |
 
-Un discriminador ausente o desconocido produce 400. Un PUT debe conservar el subtipo del registro.
+PUT representa el estado completo y no permite cambiar el subtipo persistido. La entrada se valida por completo antes de copiar campos, por lo que un fallo no deja cambios parciales.
 
-## Protocolo de dominio
+## Responsabilidades
 
-`UICapable` declara mensajes de imagen, posición, sonido, velocidad y mensaje UI. Jugador y Aldeano lo implementan. `GET /ui` utiliza una referencia del tipo interfaz y responde con cualquiera de las dos implementaciones.
+### Entidades
 
-## CRUD REST
+Representan estado, relaciones de herencia y comportamiento polimórfico descriptivo. Un constructor puede representar temporalmente datos inválidos recibidos por Jackson; ese objeto no se persiste hasta que el servicio lo acepta.
 
-| Método | URL | Éxito | Error principal |
-|---|---|---:|---:|
-| `POST` | `/entidades` | 201 | 400 |
-| `GET` | `/entidades` | 200 | - |
-| `GET` | `/entidades/{id}` | 200 | 404 |
-| `PUT` | `/entidades/{id}` | 200 | 400 o 404 |
-| `DELETE` | `/entidades/{id}` | 204 | 404 |
+### EntidadService
 
-El GET de colección usa `EntidadRepository.findAll()`. No arma una lista fija dentro del controller.
+- CRUD y transacciones.
+- Reglas de salud de creación y estado posterior.
+- Validación de coordenadas, velocidad, rango, daño, tiempo, nombre, experiencia y profesión.
+- Compatibilidad de subtipos en PUT.
+- Construcción y validación de demostraciones transitorias.
+- Sobrecargas de ataque y transición de salud.
+- Resolución de `UICapable` transitorio o persistido.
 
-El PUT reemplaza los valores con el cuerpo enviado y no es un PATCH. Los campos omitidos reciben valores predeterminados de Java durante la deserialización; pueden provocar 400 o reemplazar el valor anterior. Por eso el cliente envía el cuerpo completo.
+### ExplosionService
 
-El DELETE es físico. El servicio obtiene primero la entidad para producir 404 si no existe y luego delega el borrado al repositorio.
+- Valida solicitud, IDs y tipos.
+- Valida el estado actual de Creeper, Jugador y Aldeano.
+- Exige participantes vivos.
+- Valida tiempo de detonación.
+- Calcula distancia tridimensional y valida radio.
+- Pre valida ambos objetivos antes de aplicar daño.
+- Aplica y persiste daño dentro de `@Transactional`.
+- Lanza `ExplosionNoPreparadaException` y `ObjetivoFueraDeRangoException`.
 
-## Endpoints complementarios
+### Controllers
 
-| Método | URL | Propósito |
+Traducen HTTP y delegan. No contienen límites de salud, reglas de daño, tiempo o radio.
+
+## Invariantes
+
+### Salud
+
+| Tipo | POST | PUT o estado posterior al daño |
 |---|---|---|
-| `GET` | `/` | Confirmar que la aplicación está activa. |
-| `GET` | `/entidad` | Construir transitoriamente seis tipos y observar sobreescritura. |
-| `GET` | `/entidad/atacar` | Observar los dos métodos `atacar` sobrecargados. |
-| `GET` | `/ui` | Usar el protocolo `UICapable`. |
-| `POST` | `/explosiones/simular` | Ejecutar la simulación persistente. |
+| Jugador | 1 a 20 | 0 a 20 |
+| Creeper | 1 a 20 | 0 a 20 |
+| Aldeano | 1 a 20 | 0 a 20 |
+| Zombie/Esqueleto transitorios | 1 a 20 | No aplica |
+| EntidadGenerica | Mayor que 0 | Mayor o igual que 0 |
+| Animal transitorio | Mayor que 0 | No aplica |
 
-## Reglas de explosión
+Los límites 20 de Jugador, Creeper, Aldeano, Zombie y Esqueleto provienen de Minecraft vanilla. No se asigna un máximo a tipos genéricos que no identifican una especie.
 
-### Regla 1: tiempo de detonación
+El daño debe ser positivo y la transición es:
 
-`tiempoTranscurrido` es obligatorio y no puede ser negativo; esos errores de entrada producen 400. `Creeper.explotar(int tiempoTranscurrido)` exige que un valor no negativo sea mayor o igual que `tiempoExplosion`. Si no se cumple, lanza `ExplosionNoPreparadaException` y la API responde 409.
+```text
+saludFinal = max(0, saludInicial - dano)
+```
 
-### Regla 2: radio de explosión
+Cero es inválido como salud inicial, pero válido después del daño y en PUT para representar una entidad muerta.
 
-`Creeper.validarObjetivoDentroDelRadio(Entidad)` calcula la distancia euclidiana mediante `Entidad.distanciaA`. Si supera el radio, lanza `ObjetivoFueraDeRangoException` y la API responde 422.
+### Otras invariantes
 
-`ExplosionService` carga un Creeper, un Jugador y un Aldeano por ID. Prevalida ambos objetivos, aplica daño y persiste la salud de Jugador y Aldeano dentro de una transacción. Un GET posterior muestra el resultado.
+- Coordenadas finitas; se aceptan valores negativos.
+- Velocidad no negativa.
+- Rango finito y no negativo.
+- Daño de ataque positivo.
+- Tiempo de explosión positivo.
+- Experiencia no negativa.
+- Nombre y profesión no nulos ni blancos.
+- IDs positivos.
+- Tipos de participantes compatibles.
+- Participantes de explosión vivos.
+
+## CRUD
+
+| Método | URL | Éxito | Errores |
+|---|---|---:|---|
+| POST | `/entidades` | 201 | 400 |
+| GET | `/entidades` | 200 | - |
+| GET | `/entidades/{id}` | 200 | 400, 404 |
+| PUT | `/entidades/{id}` | 200 | 400, 404 |
+| DELETE | `/entidades/{id}` | 204 | 400, 404 |
+
+La persistencia inválida no se intenta: POST valida antes de `save`; PUT valida los datos y el subtipo antes de copiar estado.
+
+## Consulta de dominio
+
+`EntidadRepository.findBySaludGreaterThan(0)` devuelve entidades vivas. Es una consulta derivada de Spring Data, no una implementación SQL manual. Las pruebas persisten una entidad viva y otra muerta y verifican el filtro.
+
+## UICapable
+
+Jugador y Aldeano implementan `UICapable` desde ramas distintas. `GET /ui` conserva el modo transitorio histórico y agrega el modo persistido:
+
+```text
+GET /ui?tipo=jugador&salud=20&nombre=Alex
+GET /ui?id={idPersistido}
+```
+
+Con `id`, el servicio recupera la entidad real y comprueba que implemente la interfaz.
+
+## Simulación
 
 Solicitud:
 
@@ -109,99 +162,106 @@ Solicitud:
 }
 ```
 
-## Jerarquía de excepciones
+Orden de ejecución:
+
+1. Validar tiempo de entrada e IDs.
+2. Cargar y comprobar tipos.
+3. Validar los tres estados y que estén vivos.
+4. Comparar tiempo transcurrido con tiempo de explosión.
+5. Calcular y validar las dos distancias.
+6. Aplicar daño con límite inferior cero.
+7. Persistir ambas entidades dentro de la misma transacción.
+
+La validación completa ocurre antes del primer cambio de salud. Un 409 o 422 conserva ambas saludes.
+
+## Excepciones
 
 ```text
 RuntimeException
 └── ExplosionException
-    ├── ExplosionNoPreparadaException
-    └── ObjetivoFueraDeRangoException
+    ├── ExplosionNoPreparadaException -> 409
+    └── ObjetivoFueraDeRangoException -> 422
 ```
 
-Las dos hijas son no comprobadas. Esta elección mantiene las firmas del dominio enfocadas en el comportamiento y permite rollback transaccional por defecto.
+Las clases personalizadas se conservan, pero ahora se lanzan desde `ExplosionService`. `@RestControllerAdvice` mantiene un handler por hija y traduce también 400, 404 y JSON ilegible.
 
-| Excepción o caso | Estado |
-|---|---:|
-| `ExplosionNoPreparadaException` | 409 |
-| `ObjetivoFueraDeRangoException` | 422 |
-| Entidad inexistente | 404 |
-| ID nulo, tipo incorrecto o estado inválido | 400 |
+## Simplificaciones documentadas
 
-## Invariantes
+- Radio de explosión = `rangoDeteccion`.
+- Daño base de explosión = `danoAtaque`.
+- Daño plano sin atenuación por distancia.
+- Sin dificultad, armadura, bloques, línea de visión ni Creeper cargado.
+- Exactamente dos objetivos obligatorios.
+- El Creeper no se consume ni cambia de estado después de la simulación.
 
-- La salud es no negativa; el valor 0 representa una entidad sin vida y puede persistirse y actualizarse.
-- Las coordenadas son finitas.
-- La velocidad y la experiencia no son negativas.
-- El rango es finito y no negativo.
-- Daño y tiempo de explosión son positivos.
-- Nombre y profesión no son nulos ni blancos.
-- Un objetivo y una entidad usada para calcular distancia no son nulos.
-- Una actualización no cambia el subtipo persistido.
-- La simulación no aplica daño parcial cuando una regla falla.
+Estas simplificaciones preservan el contrato aprobado. No se presentan como reproducción exacta de Minecraft vanilla.
 
-## H2
+## Atomicidad
 
-Desarrollo usa `jdbc:h2:file:./data/entidades`, usuario `sa`, contraseña vacía, `ddl-auto=update` y consola habilitada. Pruebas usa `jdbc:h2:mem:minecraft-test`, `ddl-auto=create-drop` y consola deshabilitada.
+`ExplosionService.simular` usa `@Transactional`. Las excepciones personalizadas son no comprobadas, por lo que provocan rollback. Además, el servicio pre valida todos los objetivos, evitando que un error de radio ocurra después de dañar al primero.
 
-La consola de desarrollo está disponible en `http://localhost:8080/h2-console` cuando la aplicación está activa.
+La corrección garantiza atomicidad de una invocación. No agrega bloqueo pesimista ni versión optimista para simulaciones concurrentes; ese escenario no forma parte de POO-08 y queda como posible evolución.
 
-## Colección Insomnia
+## Pruebas
 
-Archivo: `insomnia/poo08-minecraft.json`.
-
-La colección incluye:
-
-- entorno con URL base y variables para tres IDs;
-- POST de Creeper, Jugador y Aldeano;
-- GET de colección e ítems;
-- PUT y GET de verificación;
-- DELETE y GET 404 posterior;
-- POST inválido y GET que comprueba que no agregó una fila;
-- GET de ID inexistente;
-- endpoint `UICapable`;
-- explosión válida y GET del estado persistido;
-- caso 409 y comprobación sin cambios;
-- caso 422 y comprobación de que no hubo daño parcial.
-
-La estructura se validó estáticamente. No se afirma importación o ejecución gráfica desde Insomnia.
-
-## Forma de prueba
-
-1. Ejecutar `cd minecraft` y `./mvnw spring-boot:run`.
-2. Verificar `GET /`.
-3. Importar la colección.
-4. Crear los tres participantes y copiar sus IDs al ambiente.
-5. Ejecutar los GET iniciales y el endpoint `UICapable`.
-6. Ejecutar una sola vez la explosión válida y consultar la salud persistida.
-7. Ejecutar el POST inválido, el ID inexistente y el caso 409; usar el GET siguiente para comprobar que no hubo cambios.
-8. Ejecutar PUT para mover al Aldeano fuera del radio y confirmar la actualización con GET.
-9. Ejecutar el caso 422 y los dos GET que comprueban que no hubo daño parcial.
-10. Ejecutar DELETE, confirmar 404 con el GET posterior y completar la limpieza.
-11. Abrir la consola H2 y observar las tablas si se requiere una verificación visual.
-
-## Pruebas automatizadas
+Comando:
 
 ```bash
 cd minecraft
 ./mvnw test
 ```
 
-Resultado documentado:
+La suite actual tiene 83 ejecuciones y cubre:
 
-```text
-Tests run: 71, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS
+- Jugador POST con salud 0 y 5000: 400 y cero inserciones;
+- Jugador POST con salud 1 y 20: 201;
+- PUT inválido: 400 y estado anterior intacto;
+- daño letal: salud final cero;
+- ausencia de `setSalud` público y rechazo por servicio;
+- Creeper con tiempo cero: 400 sin daño;
+- tiempo insuficiente: 409 sin daño;
+- objetivo fuera de radio: 422 sin daño parcial;
+- CRUD, JSON polimórfico y borrado;
+- anotación y tablas físicas `JOINED` después de `flush/clear`;
+- `UICapable` transitorio y persistido;
+- consulta de entidades vivas;
+- persistencia de salud después de explosión.
+- rollback real cuando el repositorio falla después de aplicar daño en memoria.
+
+También se ejecuta con orden aleatorio:
+
+```bash
+./mvnw -Dsurefire.runOrder=random test
 ```
 
-Las 71 ejecuciones cubren contexto, dominio, jerarquía abstracta, sobrecarga, interfaz, CRUD de subtipos, discriminador obligatorio, invariantes, actualización, eliminación, explosión letal con posterior PUT, validación del tiempo transcurrido, persistencia de explosión, IDs incorrectos, 404, 409, 422 y conservación de la salud ante errores. También se ejecutan con orden aleatorio.
+## Defectos de la entrega evaluada
 
-## Entregables
+1. Jugador no tenía máximo de salud y aceptaba 30, 35, 40 o 5000.
+2. POST no distinguía salud inicial de salud posterior al daño.
+3. Entidades validaban y lanzaban excepciones desde constructores, callbacks y métodos de negocio.
+4. `setSalud` público permitía cambios directos.
+5. Creeper validaba tiempo/radio y aplicaba daño, en vez del servicio.
+6. Controllers construían y ejecutaban reglas de demostración.
+7. `/ui` solo operaba con objetos transitorios.
+8. El repositorio no tenía consulta de dominio.
+9. Documentación e Insomnia usaban Jugador 30 y Aldeano 25.
 
-- Código y pruebas en el repositorio.
-- [README.md](README.md).
-- [BITACORA.md](BITACORA.md).
-- [insomnia/poo08-minecraft.json](insomnia/poo08-minecraft.json).
-- [LICENSE](LICENSE).
-- Esta especificación para Classroom.
+## Por qué las 71 pruebas eran verdes
 
-El enlace exacto al commit final debe agregarse en Classroom después de confirmar y publicar el estado definitivo. No se usa el SHA anterior porque no incluye cambios todavía no confirmados.
+Los tests reflejaban la implementación defectuosa: esperaban validación en constructores, invocaban daño desde entidades y creaban Jugadores por encima de 20. No había casos 0/5000 para POST, límites 1/20, PUT inválido con consulta posterior, ausencia de setter, inspección física de `JOINED` ni UI sobre persistencia. Por eso 71 pruebas exitosas no demostraban las reglas corregidas.
+
+## Insomnia
+
+`insomnia/poo08-minecraft.json` incluye el recorrido de CRUD y simulación, además de los casos nuevos de salud 0, salud 5000, tiempo de Creeper cero, tiempo transcurrido ausente/negativo, 409 y 422 con consultas posteriores.
+
+La colección se validará como JSON. Su importación gráfica no se afirma en un entorno sin Insomnia.
+
+## Verificación
+
+```bash
+cd minecraft
+./mvnw test
+./mvnw -Dsurefire.runOrder=random test
+./mvnw spring-boot:run
+git diff --check
+```

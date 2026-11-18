@@ -3,6 +3,7 @@ package py.edu.uc.lp3.msferreira.minecraft.rest.exception;
 import java.util.NoSuchElementException;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -39,6 +40,13 @@ public class ExplosionExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorExplosion manejarEntidadInvalida(IllegalArgumentException excepcion) {
         return new ErrorExplosion("Entrada inválida", excepcion.getMessage(), HttpStatus.BAD_REQUEST.value());
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorExplosion manejarJsonInvalido(HttpMessageNotReadableException excepcion) {
+        Throwable causa = excepcion.getMostSpecificCause();
+        return new ErrorExplosion("Entrada inválida", causa.getMessage(), HttpStatus.BAD_REQUEST.value());
     }
 
     public record ErrorExplosion(String error, String mensaje, int estado) {

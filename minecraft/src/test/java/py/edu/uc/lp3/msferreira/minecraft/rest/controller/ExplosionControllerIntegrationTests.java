@@ -142,6 +142,33 @@ class ExplosionControllerIntegrationTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Entrada inválida"))
                 .andExpect(jsonPath("$.mensaje").value("El tiempo transcurrido no puede ser negativo."));
+
+        assertEquals(20, entidadRepository.findById(jugador.getId()).orElseThrow().getSalud());
+        assertEquals(20, entidadRepository.findById(aldeano.getId()).orElseThrow().getSalud());
+    }
+
+    @Test
+    void rechazaSolicitudNulaConElContratoDeErrorComun() throws Exception {
+        mockMvc.perform(post("/explosiones/simular")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("null"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Entrada inválida"))
+                .andExpect(jsonPath("$.estado").value(400));
+    }
+
+    @Test
+    void rechazaCreeperConTiempoExplosionCeroSinAplicarDano() throws Exception {
+        creeper = entidadRepository.save(new Creeper(20, 0, 0, 0, 0, 5, 8, 0));
+
+        mockMvc.perform(post("/explosiones/simular")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(solicitud(3)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensaje").value("El tiempo de explosión debe ser mayor que 0."));
+
+        assertEquals(20, entidadRepository.findById(jugador.getId()).orElseThrow().getSalud());
+        assertEquals(20, entidadRepository.findById(aldeano.getId()).orElseThrow().getSalud());
     }
 
     @Test
@@ -175,6 +202,34 @@ class ExplosionControllerIntegrationTests {
                         .content(solicitud))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Entrada inválida"));
+    }
+
+    @Test
+    void rechazaParticipanteMuertoOIdRepetidoSinDanoParcial() throws Exception {
+        jugador = entidadRepository.save(new Jugador("Steve", 0, 0, 2, 0, 0, 0));
+
+        mockMvc.perform(post("/explosiones/simular")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(solicitud(3)))
+                .andExpect(status().isBadRequest());
+        assertEquals(20, entidadRepository.findById(aldeano.getId()).orElseThrow().getSalud());
+
+        jugador = entidadRepository.save(new Jugador("Steve", 0, 20, 2, 0, 0, 0));
+        String repetida = """
+                {
+                  "creeperId": %d,
+                  "jugadorId": %d,
+                  "aldeanoId": %d,
+                  "tiempoTranscurrido": 3
+                }
+                """.formatted(creeper.getId(), jugador.getId(), jugador.getId());
+        mockMvc.perform(post("/explosiones/simular")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(repetida))
+                .andExpect(status().isBadRequest());
+
+        assertEquals(20, entidadRepository.findById(jugador.getId()).orElseThrow().getSalud());
+        assertEquals(20, entidadRepository.findById(aldeano.getId()).orElseThrow().getSalud());
     }
 
     @Test

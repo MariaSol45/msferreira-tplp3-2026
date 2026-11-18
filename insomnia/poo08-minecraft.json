@@ -1,7 +1,7 @@
 {
   "_type": "export",
   "__export_format": 4,
-  "__export_date": "2026-11-05T18:00:00.000Z",
+  "__export_date": "2026-11-18T14:00:00.000Z",
   "__export_source": "insomnia.desktop.app:v2023.5.8",
   "resources": [
     {
@@ -10,7 +10,7 @@
       "modified": 1793901600000,
       "created": 1793901600000,
       "name": "POO-08 Minecraft - CRUD H2 y explosiones",
-      "description": "Recorrido obligatorio: 1) iniciar la API; 2) ejecutar las tres creaciones; 3) copiar cada id de respuesta a creeper_id, jugador_id y aldeano_id en Base Environment; 4) ejecutar consultas iniciales; 5) ejecutar la explosión exitosa y los GET posteriores; 6) ejecutar errores 400, 404, 409 y 422 con sus verificaciones; 7) ejecutar la limpieza y confirmar el primer DELETE con un GET 404. No usar IDs preexistentes.",
+      "description": "Recorrido: iniciar la API, crear tres entidades con salud vanilla, copiar sus IDs, consultar UI persistida, simular, ejecutar los casos 400/404/409/422 y comprobar H2 con GET posteriores. No usar IDs preexistentes.",
       "scope": "collection",
       "_type": "workspace"
     },
@@ -25,7 +25,7 @@
         "creeper_id": "",
         "jugador_id": "",
         "aldeano_id": "",
-        "id_inexistente": -1
+        "id_inexistente": 999999
       },
       "dataPropertyOrder": null,
       "color": null,
@@ -63,7 +63,7 @@
       "modified": 1793901600000,
       "created": 1793901600000,
       "name": "03 - Simulación persistente",
-      "description": "Ver salud antes, simular una vez y repetir los GET. Con estos cuerpos, Jugador pasa de 30 a 24 y Aldeano de 25 a 19.",
+      "description": "Ver salud antes, simular una vez y repetir los GET. Con estos cuerpos, Jugador y Aldeano pasan de 20 a 14.",
       "environment": {},
       "environmentPropertyOrder": null,
       "metaSortKey": 300,
@@ -75,7 +75,7 @@
       "modified": 1793901600000,
       "created": 1793901600000,
       "name": "04 - Invariantes y excepciones",
-      "description": "Casos 400, 404, 409 y 422. El GET posterior al 409 comprueba que el POST inválido no agregó registros y que el 409 no aplicó daño. El PUT mueve al Aldeano nuevo fuera del radio; los GET posteriores al 422 comprueban que no hubo daño parcial.",
+      "description": "Casos de salud inicial 0/5000, tiempo de Creeper 0, tiempo transcurrido ausente/negativo, 404, 409 y 422. Los GET posteriores comprueban que no hubo inserciones o daño parcial.",
       "environment": {},
       "environmentPropertyOrder": null,
       "metaSortKey": 400,
@@ -141,7 +141,7 @@
       "method": "POST",
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"tipo\": \"jugador\",\n  \"nombre\": \"Alex\",\n  \"nivelEXP\": 12,\n  \"salud\": 30,\n  \"posicionX\": 2,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 2\n}"
+        "text": "{\n  \"tipo\": \"jugador\",\n  \"nombre\": \"Alex\",\n  \"nivelEXP\": 12,\n  \"salud\": 20,\n  \"posicionX\": 2,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 2\n}"
       },
       "parameters": [],
       "headers": [{"name": "Content-Type", "value": "application/json"}],
@@ -161,7 +161,7 @@
       "method": "POST",
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"tipo\": \"aldeano\",\n  \"salud\": 25,\n  \"posicionX\": 4,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1,\n  \"domesticable\": true,\n  \"profesion\": \"Bibliotecario\"\n}"
+        "text": "{\n  \"tipo\": \"aldeano\",\n  \"salud\": 20,\n  \"posicionX\": 4,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1,\n  \"domesticable\": true,\n  \"profesion\": \"Bibliotecario\"\n}"
       },
       "parameters": [],
       "headers": [{"name": "Content-Type", "value": "application/json"}],
@@ -209,9 +209,9 @@
       "parentId": "grp_02_consultas",
       "modified": 1793901600000,
       "created": 1793901600000,
-      "url": "{{ _.base_url }}/ui?tipo=jugador&salud=30&x=2&y=0&z=0&velocidad=2&nombre=Alex&experiencia=12",
+      "url": "{{ _.base_url }}/ui?id={{ _.jugador_id }}",
       "name": "07 - GET endpoint UICapable",
-      "description": "Usa el tipo de interfaz UICapable con una implementación Jugador. Debe responder imagen, posición, sonido, velocidad y mensaje.",
+      "description": "Recupera el Jugador persistido mediante una referencia UICapable. Debe responder imagen, posición, sonido, velocidad y mensaje.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -228,7 +228,7 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades/{{ _.jugador_id }}",
       "name": "08 - GET Jugador antes",
-      "description": "La salud inicial debe ser 30.",
+      "description": "La salud inicial debe ser 20.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -245,7 +245,7 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades/{{ _.aldeano_id }}",
       "name": "09 - GET Aldeano antes",
-      "description": "La salud inicial debe ser 25.",
+      "description": "La salud inicial debe ser 20.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -282,7 +282,7 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades/{{ _.jugador_id }}",
       "name": "11 - GET Jugador después",
-      "description": "Comprueba persistencia: la salud debe ser 24.",
+      "description": "Comprueba persistencia: la salud debe ser 14.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -299,7 +299,7 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades/{{ _.aldeano_id }}",
       "name": "12 - GET Aldeano después",
-      "description": "Comprueba persistencia: la salud debe ser 19.",
+      "description": "Comprueba persistencia: la salud debe ser 14.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -330,13 +330,93 @@
       "_type": "request"
     },
     {
+      "_id": "req_132_jugador_salud_cero",
+      "parentId": "grp_04_errores",
+      "modified": 1795006800000,
+      "created": 1795006800000,
+      "url": "{{ _.base_url }}/entidades",
+      "name": "13A - POST Jugador salud 0 devuelve 400",
+      "description": "Salud cero es válida después del daño, no como salud inicial. Debe responder 400 y no insertar.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"jugador\",\n  \"nombre\": \"InvalidoCero\",\n  \"nivelEXP\": 0,\n  \"salud\": 0,\n  \"posicionX\": 0,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1\n}"
+      },
+      "parameters": [],
+      "headers": [{"name": "Content-Type", "value": "application/json"}],
+      "authentication": {},
+      "metaSortKey": 110,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_134_jugador_salud_5000",
+      "parentId": "grp_04_errores",
+      "modified": 1795006800000,
+      "created": 1795006800000,
+      "url": "{{ _.base_url }}/entidades",
+      "name": "13B - POST Jugador salud 5000 devuelve 400",
+      "description": "Supera el máximo vanilla de 20. Debe responder 400 y no insertar.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"jugador\",\n  \"nombre\": \"InvalidoMaximo\",\n  \"nivelEXP\": 0,\n  \"salud\": 5000,\n  \"posicionX\": 0,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1\n}"
+      },
+      "parameters": [],
+      "headers": [{"name": "Content-Type", "value": "application/json"}],
+      "authentication": {},
+      "metaSortKey": 120,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_136_tiempo_ausente",
+      "parentId": "grp_04_errores",
+      "modified": 1795006800000,
+      "created": 1795006800000,
+      "url": "{{ _.base_url }}/explosiones/simular",
+      "name": "13C - POST tiempo ausente devuelve 400",
+      "description": "Omite tiempoTranscurrido. Debe responder 400 y conservar ambas saludes.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.creeper_id }},\n  \"jugadorId\": {{ _.jugador_id }},\n  \"aldeanoId\": {{ _.aldeano_id }}\n}"
+      },
+      "parameters": [],
+      "headers": [{"name": "Content-Type", "value": "application/json"}],
+      "authentication": {},
+      "metaSortKey": 130,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_138_tiempo_negativo",
+      "parentId": "grp_04_errores",
+      "modified": 1795006800000,
+      "created": 1795006800000,
+      "url": "{{ _.base_url }}/explosiones/simular",
+      "name": "13D - POST tiempo negativo devuelve 400",
+      "description": "Usa tiempoTranscurrido=-1. Debe responder 400 y conservar ambas saludes.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.creeper_id }},\n  \"jugadorId\": {{ _.jugador_id }},\n  \"aldeanoId\": {{ _.aldeano_id }},\n  \"tiempoTranscurrido\": -1\n}"
+      },
+      "parameters": [],
+      "headers": [{"name": "Content-Type", "value": "application/json"}],
+      "authentication": {},
+      "metaSortKey": 140,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
       "_id": "req_140_get_inexistente",
       "parentId": "grp_04_errores",
       "modified": 1793901600000,
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades/{{ _.id_inexistente }}",
       "name": "14 - GET ID inexistente devuelve 404",
-      "description": "Usa id_inexistente=-1, un valor que no puede ser generado por esta aplicación, y debe responder 404.",
+      "description": "Usa id_inexistente=999999, un ID positivo no creado por este recorrido, y debe responder 404.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -353,7 +433,7 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/explosiones/simular",
       "name": "15 - POST detonación insuficiente devuelve 409",
-      "description": "tiempoTranscurrido=2 es menor que 3. Debe responder el handler ExplosionNoPreparadaException; el GET siguiente debe confirmar que la salud continúa en 24 y 19.",
+      "description": "tiempoTranscurrido=2 es menor que 3. Debe responder el handler ExplosionNoPreparadaException; el GET siguiente debe confirmar que ambas saludes continúan en 14.",
       "method": "POST",
       "body": {
         "mimeType": "application/json",
@@ -373,7 +453,7 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades",
       "name": "16 - GET confirmar colección y salud sin cambios",
-      "description": "Debe conservar la misma cantidad y los mismos IDs que 05 - GET listar entidades: el POST 400 no creó registros. También debe mostrar jugador_id con salud=24 y aldeano_id con salud=19: el POST 409 no aplicó daño.",
+      "description": "Debe conservar la misma cantidad y los mismos IDs que 05 - GET listar entidades. También debe mostrar jugador_id y aldeano_id con salud=14: los errores no insertaron ni aplicaron daño.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -390,11 +470,11 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades/{{ _.aldeano_id }}",
       "name": "17 - PUT actualizar Aldeano fuera del radio",
-      "description": "Demuestra UPDATE y mueve el Aldeano nuevo a X=6. Conserva salud 19 obtenida en el caso exitoso.",
+      "description": "Demuestra UPDATE y mueve el Aldeano nuevo a X=6. Conserva salud 14 obtenida en el caso exitoso.",
       "method": "PUT",
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"tipo\": \"aldeano\",\n  \"salud\": 19,\n  \"posicionX\": 6,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1,\n  \"domesticable\": true,\n  \"profesion\": \"Bibliotecario\"\n}"
+        "text": "{\n  \"tipo\": \"aldeano\",\n  \"salud\": 14,\n  \"posicionX\": 6,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1,\n  \"domesticable\": true,\n  \"profesion\": \"Bibliotecario\"\n}"
       },
       "parameters": [],
       "headers": [{"name": "Content-Type", "value": "application/json"}],
@@ -410,7 +490,7 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades/{{ _.aldeano_id }}",
       "name": "18 - GET confirmar actualización",
-      "description": "Debe mostrar posicionX=6 y salud=19 antes del caso 422.",
+      "description": "Debe mostrar posicionX=6 y salud=14 antes del caso 422.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -447,7 +527,7 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades/{{ _.jugador_id }}",
       "name": "20 - GET Jugador después del 422",
-      "description": "Comprueba que no hubo daño parcial: la salud debe seguir en 24.",
+      "description": "Comprueba que no hubo daño parcial: la salud debe seguir en 14.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -464,7 +544,7 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades/{{ _.aldeano_id }}",
       "name": "21 - GET Aldeano después del 422",
-      "description": "Comprueba que no hubo daño parcial: la salud debe seguir en 19.",
+      "description": "Comprueba que no hubo daño parcial: la salud debe seguir en 14.",
       "method": "GET",
       "body": {},
       "parameters": [],

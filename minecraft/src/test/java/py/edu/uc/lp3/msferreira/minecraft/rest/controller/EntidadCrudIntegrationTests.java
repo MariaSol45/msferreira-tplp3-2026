@@ -139,9 +139,158 @@ class EntidadCrudIntegrationTests {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Entrada inválida"))
-                .andExpect(jsonPath("$.mensaje").value("La salud no puede ser negativa."));
+                .andExpect(jsonPath("$.mensaje").value("La salud inicial debe ser mayor que 0."));
 
         assertEquals(0, entidadRepository.count());
+    }
+
+    @Test
+    void rechazaCrearJugadorConSaludCeroYNoInserta() throws Exception {
+        mockMvc.perform(post("/entidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Steve", 0)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensaje")
+                        .value("La salud inicial del Jugador debe estar entre 1 y 20."));
+
+        assertEquals(0, entidadRepository.count());
+    }
+
+    @Test
+    void rechazaCrearJugadorConSaludCincoMilYNoInserta() throws Exception {
+        mockMvc.perform(post("/entidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Steve", 5000)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensaje").value("La salud de Jugador no puede superar 20."));
+
+        assertEquals(0, entidadRepository.count());
+    }
+
+    @Test
+    void aceptaCrearJugadorConSaludUnoYVeinte() throws Exception {
+        mockMvc.perform(post("/entidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Uno", 1)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.salud").value(1));
+        mockMvc.perform(post("/entidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Veinte", 20)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.salud").value(20));
+
+        assertEquals(2, entidadRepository.count());
+    }
+
+    @Test
+    void rechazaPutJugadorConSaludInvalidaYConservaElEstado() throws Exception {
+        Jugador guardado = entidadRepository.save(new Jugador("Steve", 3, 20, 1, 2, 3, 1));
+
+        mockMvc.perform(put("/entidades/{id}", guardado.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Alterado", 5000)))
+                .andExpect(status().isBadRequest());
+
+        Jugador persistido = (Jugador) entidadRepository.findById(guardado.getId()).orElseThrow();
+        assertEquals(20, persistido.getSalud());
+        assertEquals("Steve", persistido.getNombre());
+        assertEquals(3, persistido.getNivelEXP());
+    }
+
+    @Test
+    void rechazaPostDeJugadorConSaludNegativaOTreinta() throws Exception {
+        mockMvc.perform(post("/entidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Negativo", -1)))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/entidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Treinta", 30)))
+                .andExpect(status().isBadRequest());
+
+        assertEquals(0, entidadRepository.count());
+    }
+
+    @Test
+    void rechazaIdControladoPorElClienteSinSobrescribirElRegistro() throws Exception {
+        Jugador guardado = entidadRepository.save(new Jugador("Original", 3, 20, 1, 2, 3, 1));
+        String cuerpo = jugadorJson("Intruso", 10).replace(
+                "\"tipo\": \"jugador\",",
+                "\"tipo\": \"jugador\",\n  \"id\": " + guardado.getId() + ","
+        );
+
+        mockMvc.perform(post("/entidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(cuerpo))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensaje")
+                        .value("El id es generado por la persistencia y debe omitirse del cuerpo."));
+
+        Jugador persistido = (Jugador) entidadRepository.findById(guardado.getId()).orElseThrow();
+        assertEquals(1, entidadRepository.count());
+        assertEquals("Original", persistido.getNombre());
+        assertEquals(20, persistido.getSalud());
+    }
+
+    @Test
+    void rechazaPutIncompletoONuloYConservaTodosLosCampos() throws Exception {
+        Jugador guardado = entidadRepository.save(new Jugador("Steve", 3, 20, 1, 2, 3, 1));
+
+        mockMvc.perform(put("/entidades/{id}", guardado.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"tipo":"jugador","nombre":"Alterado"}
+                                """))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(put("/entidades/{id}", guardado.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "tipo":"jugador","nombre":"Alterado","nivelEXP":4,
+                                  "salud":null,"posicionX":4,"posicionY":5,"posicionZ":6,"velocidad":2
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        Jugador persistido = (Jugador) entidadRepository.findById(guardado.getId()).orElseThrow();
+        assertEquals("Steve", persistido.getNombre());
+        assertEquals(3, persistido.getNivelEXP());
+        assertEquals(20, persistido.getSalud());
+        assertEquals(1, persistido.getPosicionX());
+        assertEquals(1, persistido.getVelocidad());
+    }
+
+    @Test
+    void rechazaCoercionesNumericasEnJsonSinInsertar() throws Exception {
+        mockMvc.perform(post("/entidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Decimal", 20).replace("\"salud\": 20", "\"salud\": 19.5")))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/entidades")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Texto", 20).replace("\"salud\": 20", "\"salud\": \"20\"")))
+                .andExpect(status().isBadRequest());
+
+        assertEquals(0, entidadRepository.count());
+    }
+
+    @Test
+    void putDistingueMuerteYRecuperacionConEstadoCompleto() throws Exception {
+        Jugador guardado = entidadRepository.save(new Jugador("Steve", 3, 20, 1, 2, 3, 1));
+
+        mockMvc.perform(put("/entidades/{id}", guardado.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Steve", 0)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.salud").value(0));
+        mockMvc.perform(put("/entidades/{id}", guardado.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jugadorJson("Steve", 20)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.salud").value(20));
+
+        assertEquals(20, entidadRepository.findById(guardado.getId()).orElseThrow().getSalud());
     }
 
     @Test
@@ -171,7 +320,7 @@ class EntidadCrudIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "salud": 30,
+                                  "salud": 20,
                                   "posicionX": 4,
                                   "posicionY": 5,
                                   "posicionZ": 6,
@@ -241,7 +390,7 @@ class EntidadCrudIntegrationTests {
                                   "tipo": "jugador",
                                   "nombre": "Alex",
                                   "nivelEXP": 12,
-                                  "salud": 30,
+                                  "salud": 20,
                                   "posicionX": 4,
                                   "posicionY": 5,
                                   "posicionZ": 6,
@@ -258,7 +407,7 @@ class EntidadCrudIntegrationTests {
                         .content("""
                                 {
                                   "tipo": "aldeano",
-                                  "salud": 25,
+                                  "salud": 20,
                                   "posicionX": 7,
                                   "posicionY": 8,
                                   "posicionZ": 9,
@@ -301,7 +450,7 @@ class EntidadCrudIntegrationTests {
                         .content("""
                                 {
                                   "tipo": "creeper",
-                                  "salud": 28,
+                                  "salud": 18,
                                   "posicionX": 1,
                                   "posicionY": 1,
                                   "posicionZ": 1,
@@ -322,7 +471,7 @@ class EntidadCrudIntegrationTests {
                                   "tipo": "jugador",
                                   "nombre": "Alex",
                                   "nivelEXP": 20,
-                                  "salud": 35,
+                                  "salud": 19,
                                   "posicionX": 2,
                                   "posicionY": 2,
                                   "posicionZ": 2,
@@ -339,7 +488,7 @@ class EntidadCrudIntegrationTests {
                         .content("""
                                 {
                                   "tipo": "aldeano",
-                                  "salud": 22,
+                                  "salud": 18,
                                   "posicionX": 3,
                                   "posicionY": 3,
                                   "posicionZ": 3,
@@ -474,5 +623,20 @@ class EntidadCrudIntegrationTests {
                 .filter(tipo::isInstance)
                 .findFirst()
                 .orElseThrow();
+    }
+
+    private String jugadorJson(String nombre, int salud) {
+        return """
+                {
+                  "tipo": "jugador",
+                  "nombre": "%s",
+                  "nivelEXP": 0,
+                  "salud": %d,
+                  "posicionX": 0,
+                  "posicionY": 0,
+                  "posicionZ": 0,
+                  "velocidad": 1
+                }
+                """.formatted(nombre, salud);
     }
 }
