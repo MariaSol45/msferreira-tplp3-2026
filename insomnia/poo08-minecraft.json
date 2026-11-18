@@ -10,7 +10,7 @@
       "modified": 1793901600000,
       "created": 1793901600000,
       "name": "POO-08 Minecraft - CRUD H2 y explosiones",
-      "description": "Recorrido: iniciar la API, crear tres entidades con salud vanilla, copiar sus IDs, consultar UI persistida, simular, ejecutar los casos 400/404/409/422 y comprobar H2 con GET posteriores. No usar IDs preexistentes.",
+      "description": "Iniciar la API con H2 en memoria según el README, ajustar base_url al puerto del log, crear las tres entidades y copiar sus IDs al entorno. Ejecutar los grupos en orden y comparar los GET. No usar la H2 persistente ni IDs preexistentes.",
       "scope": "collection",
       "_type": "workspace"
     },
@@ -24,8 +24,7 @@
         "base_url": "http://localhost:8080",
         "creeper_id": "",
         "jugador_id": "",
-        "aldeano_id": "",
-        "id_inexistente": 999999
+        "aldeano_id": ""
       },
       "dataPropertyOrder": null,
       "color": null,
@@ -75,7 +74,7 @@
       "modified": 1793901600000,
       "created": 1793901600000,
       "name": "04 - Invariantes y excepciones",
-      "description": "Casos de salud inicial 0/5000, tiempo de Creeper 0, tiempo transcurrido ausente/negativo, 404, 409 y 422. Los GET posteriores comprueban que no hubo inserciones o daño parcial.",
+      "description": "Casos de salud inválida, ID en POST, PUT incompleto, tiempo inválido, 409 y 422. Los GET posteriores comprueban que no hubo inserciones, sobrescrituras ni daño parcial. El 404 se comprueba en el grupo de limpieza.",
       "environment": {},
       "environmentPropertyOrder": null,
       "metaSortKey": 400,
@@ -410,19 +409,58 @@
       "_type": "request"
     },
     {
-      "_id": "req_140_get_inexistente",
+      "_id": "req_140_post_id_existente",
       "parentId": "grp_04_errores",
       "modified": 1793901600000,
       "created": 1793901600000,
-      "url": "{{ _.base_url }}/entidades/{{ _.id_inexistente }}",
-      "name": "14 - GET ID inexistente devuelve 404",
-      "description": "Usa id_inexistente=999999, un ID positivo no creado por este recorrido, y debe responder 404.",
-      "method": "GET",
-      "body": {},
+      "url": "{{ _.base_url }}/entidades",
+      "name": "14A - POST con ID generado existente devuelve 400",
+      "description": "Debe devolver 400 sin crear ni sobrescribir al Jugador Alex. En el GET 16, el nombre debe seguir siendo Alex y la salud 14.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"jugador\",\n  \"id\": {{ _.jugador_id }},\n  \"nombre\": \"NoDebeCambiar\",\n  \"nivelEXP\": 0,\n  \"salud\": 10,\n  \"posicionX\": 0,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1\n}"
+      },
       "parameters": [],
-      "headers": [],
+      "headers": [{"name": "Content-Type", "value": "application/json"}],
       "authentication": {},
       "metaSortKey": 200,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_142_post_salud_decimal",
+      "parentId": "grp_04_errores",
+      "url": "{{ _.base_url }}/entidades",
+      "name": "14B - POST con salud decimal devuelve 400",
+      "description": "19.5 no debe convertirse en 19. Debe devolver 400 y no insertar filas.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"jugador\",\n  \"nombre\": \"DecimalInvalido\",\n  \"nivelEXP\": 0,\n  \"salud\": 19.5,\n  \"posicionX\": 0,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1\n}"
+      },
+      "parameters": [],
+      "headers": [{"name": "Content-Type", "value": "application/json"}],
+      "authentication": {},
+      "metaSortKey": 210,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_144_put_jugador_incompleto",
+      "parentId": "grp_04_errores",
+      "url": "{{ _.base_url }}/entidades/{{ _.jugador_id }}",
+      "name": "14C - PUT incompleto devuelve 400",
+      "description": "PUT exige todo el estado. La salud omitida no se debe convertir en cero. El GET 16 debe mostrar Alex con salud 14 y posición X=2.",
+      "method": "PUT",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"jugador\",\n  \"nombre\": \"NoDebeCambiar\"\n}"
+      },
+      "parameters": [],
+      "headers": [{"name": "Content-Type", "value": "application/json"}],
+      "authentication": {},
+      "metaSortKey": 220,
       "isPrivate": false,
       "_type": "request"
     },
@@ -453,7 +491,7 @@
       "created": 1793901600000,
       "url": "{{ _.base_url }}/entidades",
       "name": "16 - GET confirmar colección y salud sin cambios",
-      "description": "Debe conservar la misma cantidad y los mismos IDs que 05 - GET listar entidades. También debe mostrar jugador_id y aldeano_id con salud=14: los errores no insertaron ni aplicaron daño.",
+      "description": "Debe conservar la misma cantidad y los mismos IDs que 05 - GET listar entidades. El Jugador debe seguir siendo Alex con posición X=2 y experiencia 12. El Jugador y el Aldeano deben conservar salud 14.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -521,7 +559,7 @@
       "_type": "request"
     },
     {
-      "_id": "req_190_get_jugador_rollback",
+      "_id": "req_190_get_jugador_despues_422",
       "parentId": "grp_04_errores",
       "modified": 1793901600000,
       "created": 1793901600000,
@@ -538,7 +576,7 @@
       "_type": "request"
     },
     {
-      "_id": "req_200_get_aldeano_rollback",
+      "_id": "req_200_get_aldeano_despues_422",
       "parentId": "grp_04_errores",
       "modified": 1793901600000,
       "created": 1793901600000,

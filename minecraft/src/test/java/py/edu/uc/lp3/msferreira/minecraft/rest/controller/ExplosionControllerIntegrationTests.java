@@ -117,21 +117,26 @@ class ExplosionControllerIntegrationTests {
     }
 
     @Test
-    void devuelveBadRequestCuandoFaltaElTiempoTranscurrido() throws Exception {
-        String solicitud = """
-                {
-                  "creeperId": %d,
-                  "jugadorId": %d,
-                  "aldeanoId": %d
-                }
-                """.formatted(creeper.getId(), jugador.getId(), aldeano.getId());
+    void devuelveBadRequestSinDanoCuandoElTiempoTranscurridoFaltaOEsNulo() throws Exception {
+        for (String campoTiempo : new String[] {"", ", \"tiempoTranscurrido\": null"}) {
+            String solicitud = """
+                    {
+                      "creeperId": %d,
+                      "jugadorId": %d,
+                      "aldeanoId": %d%s
+                    }
+                    """.formatted(creeper.getId(), jugador.getId(), aldeano.getId(), campoTiempo);
 
-        mockMvc.perform(post("/explosiones/simular")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(solicitud))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Entrada inválida"))
-                .andExpect(jsonPath("$.mensaje").value("El tiempo transcurrido es obligatorio."));
+            mockMvc.perform(post("/explosiones/simular")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(solicitud))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Entrada inválida"))
+                    .andExpect(jsonPath("$.estado").value(400));
+
+            assertEquals(20, entidadRepository.findById(jugador.getId()).orElseThrow().getSalud());
+            assertEquals(20, entidadRepository.findById(aldeano.getId()).orElseThrow().getSalud());
+        }
     }
 
     @Test

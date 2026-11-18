@@ -13,6 +13,7 @@
 |---|---|---|
 | OpenCode | `openai/gpt-5.6-sol` | Auditoría del repositorio, análisis de requisitos, cambios controlados, pruebas, migración de H2 y revisión documental. |
 | ChatGPT | `GPT-5.6 Sol` | Herramienta consignada en la bitácora de la etapa POO-06 como apoyo conversacional. No se atribuyen acciones posteriores sin evidencia adicional. |
+| OpenCode | `openai/gpt-6.2-sol` | Cierre de POO-08: verificación de la base Git, documentación, colección, pruebas y arranque aislado. |
 
 ## Cronología verificable
 
@@ -139,6 +140,16 @@ Se aplicaron los siguientes cambios sin crear otro proyecto y sin modificar la H
 
 La devolución específica pedía reglas en `service`, mientras el enunciado general original hablaba de reglas en métodos del dominio. Se dio prioridad a la devolución docente más reciente. La sobrecarga de ataque se preservó en `EntidadService`, y las firmas de constructores, herencia, abstracción, sobreescritura e interfaz se conservaron.
 
+### 18 de noviembre de 2026 - respaldo adversarial y cierre documental
+
+El [respaldo `4e4c38cdeab75b5edfa164055d206d972171754c`](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/4e4c38cdeab75b5edfa164055d206d972171754c) incorpora las correcciones posteriores a la suite de 83 pruebas: ID no nulo rechazado en POST/PUT, campos obligatorios de JSON, coerción numérica deshabilitada, exclusión de tipos transitorios del CRUD, distancia estable y rollback probado con `flush` y consultas JDBC antes y después del fallo.
+
+El cierre retomó ese respaldo en `main`, contrastó los archivos de entrega con el código y añadió a Insomnia regresiones de ID en POST, salud decimal y PUT incompleto. El 404 se obtiene después de eliminar un registro creado por el propio recorrido.
+
+- `./mvnw test` y `./mvnw -Dsurefire.runOrder=random -Dsurefire.runOrder.random.seed=620824 test`: 96 pruebas por ejecución, 0 fallos, 0 errores y 0 omitidas.
+- Spring Boot arrancó con `jdbc:h2:mem:poo08-smoke`, en un puerto local asignado dinámicamente. Se ejecutaron por HTTP las 31 solicitudes del export y un GET final verificó que no quedaran registros. Importación gráfica: no verificada.
+- El SHA-256 del archivo H2 de desarrollo se comparó antes y después del cierre para comprobar que su contenido no cambió.
+
 ## Resumen de prompts
 
 Los prompts de las sesiones POO-08 solicitaron, en palabras resumidas:
@@ -148,6 +159,7 @@ Los prompts de las sesiones POO-08 solicitaron, en palabras resumidas:
 3. Implementar el plan aprobado con respaldo consistente, migración sin pérdida de IDs, pruebas normales y aleatorias, y sin operaciones Git.
 4. Completar la auditoría documental contra las consignas oficiales, actualizar README, Mermaid, bitácora, especificación, Insomnia y `.gitignore`, y volver a ejecutar pruebas.
 5. Corregir integralmente la devolución del profesor sin modificar historial Git ni la base H2 de desarrollo, con auditoría previa, reglas vanilla, pruebas de persistencia y verificación final.
+6. Retomar solo el cierre POO-08 de `main` en `4e4c38c`: actualizar documentación e Insomnia, probar en orden normal y aleatorio, verificar un arranque en memoria y estimar los ocho criterios con evidencia.
 
 No se reconstruyen textualmente prompts de sesiones anteriores que no quedaron registrados. Los commits se usan para describir resultados verificables, no para inferir quién ejecutó cada comando.
 
