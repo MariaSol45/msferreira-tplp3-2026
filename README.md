@@ -1,16 +1,123 @@
-# Minecraft - POO-08
+# Minecraft - POO-09 (APIs cruzadas) sobre POO-08
 
-Servicio HTTP de LP3 desarrollado con Java 21, Spring Boot, JPA y H2. Conserva la jerarquía, el polimorfismo, los constructores sobrecargados, el CRUD y la simulación de las etapas anteriores.
+Servicio HTTP de LP3 desarrollado con Java 21, Spring Boot, JPA y H2. Conserva la jerarquía, el polimorfismo, los constructores sobrecargados, el CRUD y la simulación de las etapas anteriores, publica su OpenAPI y, en POO-09, consume las reglas de dos compañeras del grupo Minecraft.
 
-## Estado de la corrección
+Autora: María Sol Ferreira (A1 de esta entrega).
 
-El commit evaluado se conserva como referencia histórica:
+## Situación de POO-08
 
-<https://github.com/MariaSol45/msferreira-tplp3-2026/commit/8cd5f741f377c8d22e323d818658807c440e889c>
+POO-08 tuvo observaciones (19/24, [commit corregido `8cd5f741f377c8d22e323d818658807c440e889c`](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/8cd5f741f377c8d22e323d818658807c440e889c)). Todas quedaron cerradas:
 
-La corrección completa (código, pruebas, documentación e Insomnia) está en el commit [`d14f1b7633bf71b9a0efda935b18c2c654857580`](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/d14f1b7633bf71b9a0efda935b18c2c654857580).
+| Criterio | Observación | Cómo se cerró |
+|---|---|---|
+| 1. Entrega y arranque (2,5) | El enlace al commit no era visible y usaba el hash abreviado. | Esta entrega usa el enlace completo con el hash entero, copiado de la pestaña Commits. |
+| 2. Organización en paquetes (2) | El dominio lanzaba `IllegalArgumentException`, `ExplosionNoPreparadaException` y `ObjetivoFueraDeRangoException`. | Las entidades quedaron solo con estado: sin validaciones, sin `validarEstado()`, sin callbacks `@PrePersist/@PreUpdate` y sin `throw`. `EntidadService` y `ExplosionService` validan y lanzan. Las excepciones de las reglas se movieron de `domain.exception` a `service.exception`. Como mejora, `EntidadRepository` declara `findBySaludGreaterThan`. |
+| 3. Ocultamiento e invariantes (0) | Un POST de Jugador con salud 0 y otro con salud 5000 respondían 201; `setSalud` público permitía cambiar la salud desde afuera. | `EntidadService` exige salud inicial entre 1 y 20 (máximo vanilla) para Jugador, Creeper y Aldeano: los dos POST responden 400 y la colección no crece (pruebas en `EntidadCrudIntegrationTests` y en la colección POO-08). Se eliminaron los setters públicos; el daño pasa por `EntidadService.aplicarDano`. |
+| 4. Herencia (mejora) | `GET /ui` armaba instancias nuevas. | `GET /ui?id=...` lee la entidad persistida que implementa `UICapable`. |
+| 6. Comportamiento observable (mejora) | Las reglas vivían en `Creeper.explotar(int)` y `Creeper.validarObjetivoDentroDelRadio`. | Las dos reglas están en `ExplosionService` (`validarDetonacion` y `validarObjetivoDentroDelRadio`). |
+| 8. Documentación (2,5) | README y `ESPECIFICACION-POO08.md` decían que el enlace "se debe copiar en Classroom después". | Se quitaron esas frases de estado y la documentación enlaza el commit completo. |
 
-Referencias: [enunciado POO-08](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/ejercicio-poo-08-crud-h2-insomnia-2026-10-28.md), [rúbrica de ocho criterios](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/RUBRICA-ejercicios-lp3-2026.md) y [especificación histórica POO-06](ESPECIFICACION-POO06.md). En esta revisión se sigue la indicación específica comunicada para POO-08: las reglas y el lanzamiento de excepciones de negocio quedan en los servicios.
+Commits del cierre: [`d14f1b7633bf71b9a0efda935b18c2c654857580`](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/d14f1b7633bf71b9a0efda935b18c2c654857580) (validaciones en service, salud 1 a 20, pruebas, Insomnia) y [`896b9a75ded135ee88ee0a69e2605bff75ff3418`](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/896b9a75ded135ee88ee0a69e2605bff75ff3418) (excepciones de las reglas a `service.exception`).
+
+Referencias: [enunciado POO-08](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/ejercicio-poo-08-crud-h2-insomnia-2026-10-28.md), [enunciado POO-09](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/ejercicio-poo-09-apis-cruzadas-2026-11-16.md), [rúbrica](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/RUBRICA-ejercicios-lp3-2026.md) y [especificación histórica POO-06](ESPECIFICACION-POO06.md).
+
+## POO-09: APIs cruzadas
+
+### Mapa del grupo (Minecraft)
+
+| Rol | Integrante | URL base | OpenAPI | Sus dos reglas |
+|---|---|---|---|---|
+| A1 | María Sol Ferreira (este servicio) | `http://localhost:8080` | `http://localhost:8080/v3/api-docs` (JSON), `/v3/api-docs.yaml`, Swagger UI en `/swagger-ui.html` | (1) Un Creeper solo explota si `tiempoTranscurrido >= tiempoExplosion`; si no, 409. (2) Todos los objetivos tienen que estar a una distancia euclídea del Creeper menor o igual al radio de explosión; si no, 422 y nadie recibe daño. |
+| A2 | Irina | `http://localhost:8082` (a confirmar) | Pendiente: al 21/11/2026 todavía no publicó su OpenAPI. | Pendiente de su OpenAPI. |
+| A3 | Cecilia | `http://localhost:8083` (a confirmar) | Pendiente: al 21/11/2026 todavía no publicó su OpenAPI. | Pendiente de su OpenAPI. |
+
+Mis dos reglas para el grupo se consumen con [`POST /explosiones/validar`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/rest/controller/ExplosionController.java), que evalúa las reglas con los datos del cuerpo y no lee ni modifica mi H2. Código de las reglas: [`ExplosionService`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/service/ExplosionService.java).
+
+> **Pendiente con Irina y Cecilia.** Cuando publiquen su OpenAPI hay que: completar esta tabla con su URL y sus reglas; poner su URL base y su ruta de validación en `application.properties` (o en las variables de entorno); y, si su cuerpo de pedido es distinto del mío, adaptar `armarCuerpo` en [`ClienteA2`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/service/companero/ClienteA2.java) o [`ClienteA3`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/service/companero/ClienteA3.java). Mientras tanto, los clientes usan como contrato propuesto el mismo cuerpo de mi `/explosiones/validar`, y para las pruebas locales A2 y A3 son copias de mi servicio en 8082 y 8083.
+
+### Escenario
+
+`POST /jugadas/explosion` con `{"creeperId", "jugadorId", "aldeanoId", "tiempoTranscurrido"}`: un Creeper explota sobre un Jugador y un Aldeano guardados en mi H2, y la jugada se guarda solo si A2 y A3 la aceptan.
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente (Insomnia)
+    participant A1 as A1 María Sol
+    participant A2 as A2 Irina
+    participant A3 as A3 Cecilia
+    C->>A1: POST /jugadas/explosion
+    A1->>A1: leer participantes de H2 y evaluar mis dos reglas
+    A1->>A2: POST ruta de validación de A2
+    A2-->>A1: 2xx acepta / 4xx rechaza
+    A1->>A3: POST ruta de validación de A3 (solo si A2 aceptó)
+    A3-->>A1: 2xx acepta / 4xx rechaza
+    A1->>A1: aplicar daño y guardar Jugada (una transacción)
+    A1-->>C: 201 + Location /jugadas/{id}
+```
+
+Orden y por qué:
+
+1. **Mis reglas primero, localmente.** Si la jugada ya rompe mi detonación o mi radio, no tiene sentido consultar a nadie.
+2. **A2 y después A3, en serie.** Si A2 rechaza, A3 no se consulta: el rechazo tiene un único origen y no se hace una llamada inútil.
+3. **Escritura al final, en una transacción.** Las llamadas HTTP quedan fuera de la transacción; cuando A2 o A3 rechazan todavía no se escribió nada. Aplicar el daño y guardar la `Jugada` van juntos: si falla una, no queda ninguna.
+
+Respuestas:
+
+| Caso | Código | Cuerpo |
+|---|---:|---|
+| A2 y A3 aceptan | 201 | La `Jugada` guardada, con `aceptadaPorA2`, `aceptadaPorA3` y las saludes finales; `Location: /jugadas/{id}`. |
+| A2 o A3 rechaza (4xx) | 409 | `ErrorCompanero` con `origen` (`A2` o `A3`), `companero`, `estadoCompanero` y `respuestaCompanero` (el cuerpo que devolvió, sin modificar). |
+| A2 o A3 no responde, se agota el tiempo o devuelve 5xx | 502 | `ErrorCompanero` con `origen` y el motivo. |
+| Mi regla de detonación | 409 | `ErrorExplosion` "Explosión no preparada" (sin `origen`: es mía). |
+| Mi regla de radio | 422 | `ErrorExplosion` "Objetivo fuera del radio de explosión". |
+| Id inexistente / dato inválido | 404 / 400 | No se consulta a A2 ni a A3. |
+
+`GET /jugadas` y `GET /jugadas/{id}` leen las jugadas guardadas; `GET /entidades/{id}` muestra la salud después del daño. `GET /jugadas/companeros` muestra a qué URL está consultando el servicio.
+
+### Preguntas del enunciado
+
+- **¿Dónde está el OpenAPI y qué cubre?** En `/v3/api-docs` (JSON), `/v3/api-docs.yaml` y `/swagger-ui.html`, generado con springdoc. Cubre el CRUD de `/entidades`, la simulación (`/explosiones/simular`), la validación para el grupo (`/explosiones/validar`), el escenario (`/jugadas`) y los errores de las dos reglas (409 y 422 con su cuerpo y ejemplo). Se puede importar en Insomnia con *Import > From URL* sin tener el código.
+- **¿Qué hace necesarias las dos validaciones?** Cada compañera es dueña de una regla de Minecraft distinta y la jugada tiene que ser legal para todas; si solo se consultara a una, se podría guardar una jugada que rompe la regla de la otra.
+- **¿Qué queda igual si A2 acepta y A3 rechaza?** Todo lo de mi H2: no se crea la `Jugada` y ni el Jugador ni el Aldeano reciben daño. A2 solo validó, no guardó nada de mi lado. Lo comprueban `JugadaEscenarioIntegrationTests.rechazoDeA3NoGuardaNada` y los GET de la carpeta 05 de Insomnia.
+- **¿Cómo se configuran las URL de A2 y A3?** En `minecraft/src/main/resources/application.properties` (`companeros.a2.*`, `companeros.a3.*`, `companeros.timeout-segundos`) o con variables de entorno sin tocar el código: `A2_BASE_URL`, `A2_RUTA_VALIDACION`, `A3_BASE_URL`, `A3_RUTA_VALIDACION`.
+- **¿Se propagan o se traducen los errores?** Se traducen a mi jerarquía: `CompaneroException` (abstracta) con `RechazoCompaneroException` (4xx) y `CompaneroNoDisponibleException` (sin respuesta o 5xx). `CompaneroExceptionHandler` responde 409 o 502 y el campo `origen` distingue A2 de A3. El cuerpo original del compañero se conserva en `respuestaCompanero`.
+- **Si una compañera renombra una ruta, ¿alcanza con su OpenAPI?** Sí: la ruta y la URL son configuración. No se copió código de nadie; los clientes solo conocen la URL, el verbo y el cuerpo publicados.
+
+### Cómo arrancar los tres servicios
+
+Orden: primero A2 y A3 (que no dependen de nadie), después A1. Cada uno en su terminal:
+
+```bash
+# A2 (Irina): en su repositorio, desde la carpeta de su proyecto
+./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=8082
+
+# A3 (Cecilia): en su repositorio, desde la carpeta de su proyecto
+./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=8083
+
+# A1 (este repositorio)
+cd minecraft
+./mvnw spring-boot:run
+```
+
+Si A2 o A3 corren en otra máquina del laboratorio:
+
+```bash
+cd minecraft
+A2_BASE_URL=http://IP-DE-IRINA:8082 A3_BASE_URL=http://IP-DE-CECILIA:8083 ./mvnw spring-boot:run
+```
+
+Mientras Irina y Cecilia no publiquen, para probar el recorrido completo en una sola máquina se puede usar mi propio servicio como A2 y A3, cada uno con su H2 en memoria:
+
+```bash
+cd minecraft
+./mvnw spring-boot:run -Dspring-boot.run.arguments="--server.port=8082 --spring.datasource.url=jdbc:h2:mem:a2"
+./mvnw spring-boot:run -Dspring-boot.run.arguments="--server.port=8083 --spring.datasource.url=jdbc:h2:mem:a3"
+./mvnw spring-boot:run
+```
+
+### Si un compañero no responde
+
+El escenario responde 502 con el `origen` y no guarda nada. Las respuestas de ejemplo de cada caso están en [`insomnia/respuestas-ejemplo/`](insomnia/respuestas-ejemplo/): el camino feliz y las caídas son ejecuciones reales del 21/11/2026 con copias de mi servicio; los dos 409 tienen la forma verificada por las pruebas automáticas con un servidor HTTP que hace de A2 o A3. Al 21/11/2026 Irina y Cecilia todavía no habían publicado su OpenAPI.
 
 ## Objetivo
 
@@ -27,6 +134,8 @@ Las dos reglas de la simulación son:
 - Spring Boot 4.1.1.
 - Spring Web MVC.
 - Spring Data JPA.
+- springdoc-openapi 3.1.1 (OpenAPI 3 y Swagger UI).
+- `RestClient` de Spring para llamar a A2 y A3.
 - H2 persistente en desarrollo y H2 en memoria para pruebas.
 - Maven Wrapper incluido.
 
@@ -79,6 +188,8 @@ La ausencia de `setSalud` público impide modificar directamente la salud. `Enti
 
 `ExplosionService` valida IDs, tipos, estados, tiempo y alcance antes de aplicar daño dentro de una transacción. Jackson valida la forma del JSON; los servicios validan las reglas del juego y de persistencia.
 
+`JugadaService` orquesta el escenario de POO-09: describe la jugada a partir de H2, evalúa mis reglas, consulta a `ClienteA2` y `ClienteA3` (hijas de `ClienteCompanero`) y guarda la `Jugada` en una transacción con la explosión.
+
 ### Controllers
 
 Los controllers traducen HTTP, delegan los casos de uso y construyen la representación de respuesta. No deciden límites de salud, daño, tiempo ni alcance.
@@ -121,6 +232,12 @@ Otras reglas:
 | `PUT` | `/entidades/{id}` | Reemplaza el estado del mismo subtipo. |
 | `DELETE` | `/entidades/{id}` | Borra físicamente y devuelve 204. |
 | `POST` | `/explosiones/simular` | Ejecuta y persiste daño. |
+| `POST` | `/explosiones/validar` | Evalúa las dos reglas sin tocar H2 (para el grupo). |
+| `POST` | `/jugadas/explosion` | Escenario POO-09: guarda la explosión solo si A2 y A3 aceptan. |
+| `GET` | `/jugadas` | Jugadas guardadas. |
+| `GET` | `/jugadas/{id}` | Una jugada. |
+| `GET` | `/jugadas/companeros` | URL de validación configurada para A2 y A3. |
+| `GET` | `/v3/api-docs` | OpenAPI 3 (también `/v3/api-docs.yaml` y `/swagger-ui.html`). |
 
 ### JSON polimórfico
 
@@ -194,8 +311,9 @@ Estas decisiones son deliberadas y están aisladas en `ExplosionService`, por lo
 | 204 | Eliminación válida. |
 | 400 | JSON, ID, tipo, estado o invariante inválida. |
 | 404 | ID positivo inexistente. |
-| 409 | Tiempo de detonación insuficiente. |
+| 409 | Tiempo de detonación insuficiente, o rechazo de A2/A3 en el escenario (campo `origen`). |
 | 422 | Objetivo fuera del radio. |
+| 502 | A2 o A3 no respondió en el escenario (campo `origen`). |
 
 Las excepciones 409 y 422 conservan la jerarquía `ExplosionException` en `service.exception` y handlers separados. Sus reglas se evalúan y sus excepciones se lanzan desde `ExplosionService`, no desde `Creeper`.
 
@@ -253,7 +371,13 @@ cd minecraft
 ./mvnw -Dsurefire.runOrder=random -Dsurefire.runOrder.random.seed=620824 test
 ```
 
-Resultado del cierre sobre el código de `4e4c38c`: **96 pruebas, 0 fallos, 0 errores, 0 omitidas** en cada ejecución. Surefire usa la semilla indicada para reproducir el orden aleatorio.
+Resultado de POO-09 (21/11/2026): **120 pruebas, 0 fallos, 0 errores, 0 omitidas** en orden normal y en orden aleatorio con la semilla indicada. En el cierre de POO-08 (`4e4c38c`) eran 96.
+
+Pruebas nuevas de POO-09:
+
+- `ExplosionValidacionIntegrationTests`: `/explosiones/validar` acepta, rechaza con 409 y 422, responde 400 sin objetivos y no toca H2.
+- `ClienteCompaneroTests`: contra un servidor HTTP real (el `HttpServer` del JDK) que hace de compañero, un 2xx acepta, un 4xx se traduce en rechazo con rol y cuerpo, y un 5xx o una conexión rechazada en "no disponible".
+- `JugadaEscenarioIntegrationTests`: con dos de esos servidores como A2 y A3, el camino feliz guarda y se lee con GET; el rechazo de A2 no guarda nada y no consulta a A3; el rechazo de A3 no guarda nada; A3 caída devuelve 502 con origen; mi regla rechaza antes de consultar a nadie.
 
 La cobertura incluye POST Jugador con `0`, `-1`, `30` y `5000` sin inserción y límites `1` y `20` válidos; POST con ID ajeno; PUT incompleto, nulo o inválido sin cambios; muerte y recuperación; coerciones JSON; `JOINED` físico; e interfaz `UICapable` persistida. La simulación prueba 409 y 422 sin daño, participantes inválidos, distancias extremas y daño limitado a la salud disponible.
 
@@ -272,6 +396,19 @@ La suite evaluada era verde porque comprobaba el comportamiento que estaba mal e
 - los casos llamados rollback fallaban antes de mutar; sí demostraban prevalidación y ausencia de daño parcial, pero no un fallo posterior a la escritura.
 
 ## Colección Insomnia
+
+### POO-09
+
+Archivo: `insomnia/poo09-apis-cruzadas.json`. El entorno tiene `base_url_a1`, `base_url_a2`, `base_url_a3` y los ids de los participantes. Carpetas:
+
+1. OpenAPI de A1, A2 y A3, y a quién consulta A1.
+2. Preparación en A1: crear Creeper, Jugador y Aldeano y copiar los ids al entorno.
+3. Escenario feliz y GET de comprobación.
+4. Rechazo de A2 (Irina): el pedido directo a su validación, el escenario y los GET que muestran que nada cambió.
+5. Rechazo de A3 (Cecilia): lo mismo.
+6. Mis reglas: el escenario rechazado por mi detonación y mi `/explosiones/validar`.
+
+### POO-08
 
 Archivo: `insomnia/poo08-minecraft.json`. Sus 31 solicitudes se verificaron por HTTP contra la instancia aislada. Usa `base_url` e IDs creados durante el recorrido. Incluye CRUD, UI persistida, explosión válida, salud inválida 0/5000, salud decimal, ID en POST, PUT incompleto, tiempo inválido y los casos 404, 409 y 422.
 
@@ -386,6 +523,7 @@ classDiagram
 - [ESPECIFICACION-POO08.md](ESPECIFICACION-POO08.md)
 - [BITACORA.md](BITACORA.md)
 - [insomnia/poo08-minecraft.json](insomnia/poo08-minecraft.json)
+- [insomnia/poo09-apis-cruzadas.json](insomnia/poo09-apis-cruzadas.json) y [insomnia/respuestas-ejemplo/](insomnia/respuestas-ejemplo/)
 - [LICENSE](LICENSE)
 
 ## Licencia

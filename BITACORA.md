@@ -2,7 +2,7 @@
 
 ## Proyecto
 
-- Proyecto actual: Minecraft - POO-08.
+- Proyecto actual: Minecraft - POO-09 (APIs cruzadas), sobre POO-08.
 - Repositorio: `msferreira-tplp3-2026`.
 - Dominio: Minecraft.
 - Finalidad: registrar de forma transparente la asistencia usada durante análisis, implementación, verificación y documentación.
@@ -14,6 +14,7 @@
 | OpenCode | `openai/gpt-5.6-sol` | Auditoría del repositorio, análisis de requisitos, cambios controlados, pruebas, migración de H2 y revisión documental. |
 | ChatGPT | `GPT-5.6 Sol` | Herramienta consignada en la bitácora de la etapa POO-06 como apoyo conversacional. No se atribuyen acciones posteriores sin evidencia adicional. |
 | OpenCode | `openai/gpt-6.2-sol` | Cierre de POO-08: verificación de la base Git, documentación, colección, pruebas y arranque aislado. |
+| Claude Code (app de escritorio) | `claude-opus-5-5` (Claude Opus 5.5) | POO-09: cierre de la última observación de POO-08, OpenAPI, clientes a A2 y A3, escenario, Insomnia, pruebas y documentación. |
 
 ## Cronología verificable
 
@@ -149,6 +150,33 @@ El cierre retomó ese respaldo en `main`, contrastó los archivos de entrega con
 - `./mvnw test` y `./mvnw -Dsurefire.runOrder=random -Dsurefire.runOrder.random.seed=620824 test`: 96 pruebas por ejecución, 0 fallos, 0 errores y 0 omitidas.
 - Spring Boot arrancó con `jdbc:h2:mem:poo08-smoke`, en un puerto local asignado dinámicamente. Se ejecutaron por HTTP las 31 solicitudes del export y un GET final verificó que no quedaran registros. Importación gráfica: no verificada.
 - El SHA-256 del archivo H2 de desarrollo se comparó antes y después del cierre para comprobar que su contenido no cambió.
+
+### 21 de noviembre de 2026 - POO-09, APIs cruzadas
+
+Sesión con Claude Code (Claude Opus 5.5). Prompt, en palabras resumidas: "Siguiendo con el repositorio y el servicio de POO-08, publicar el OpenAPI, consumir a dos compañeras del grupo (A2 Irina, A3 Cecilia), exponer un escenario que guarde la jugada en H2 solo si las dos aceptan e indique de quién fue el rechazo, y cerrar las observaciones de la corrección de POO-08". Se adjuntó el PDF de la corrección de POO-08.
+
+Lo que se hizo, en commits separados sobre la rama `feature/poo-09-apis-cruzadas` (creada desde `main` en `d14f1b7`):
+
+1. `fix(poo-08)`: se revisó cada observación de la corrección contra el código. La mayoría ya estaba cerrada en `d14f1b7`; faltaba que las excepciones de las reglas salieran de `domain.exception`, y se movieron a `service.exception`. Se quitaron frases de estado previas a la entrega en README y especificación.
+2. `feat(openapi)`: se tomó el trabajo de springdoc que estaba sin terminar en `feature/RESTClient` y se documentó el cuerpo de error de 409 y 422.
+3. `feat(openapi)`: `POST /explosiones/validar`, para que el grupo consuma mis dos reglas sin modificar mi H2.
+4. `feat(clientes)`: `ClienteCompanero` (RestClient) con `ClienteA2` y `ClienteA3`, URL y ruta configurables y traducción de errores a mi jerarquía.
+5. `feat(escenario)`: `POST /jugadas/explosion`, la entidad `Jugada` y `CompaneroExceptionHandler`.
+6. `test(insomnia)`: colección POO-09 y respuestas de ejemplo.
+7. `docs`: README y esta bitácora.
+
+Decisiones:
+
+- Irina y Cecilia todavía no habían publicado su OpenAPI. Por eso el contrato que se les envía es, por ahora, el mismo cuerpo de mi `/explosiones/validar`, y el único lugar a adaptar cuando publiquen es `armarCuerpo` de cada cliente más la configuración.
+- Orden: mis reglas, A2 y después A3; las llamadas HTTP van fuera de la transacción y la escritura va al final.
+- Un 4xx del compañero es un rechazo (409 con `origen`); sin respuesta o con 5xx es "no disponible" (502 con `origen`).
+
+Verificación:
+
+- `./mvnw test` y `./mvnw -Dsurefire.runOrder=random -Dsurefire.runOrder.random.seed=620824 test`: 120 pruebas, 0 fallos, 0 errores, 0 omitidas.
+- Se arrancó el jar tres veces (8080 como A1, y 8082 y 8083 como copias de mi servicio haciendo de A2 y A3), con H2 en memoria. Por HTTP: el camino feliz respondió 201 y GET mostró la jugada y la salud 14; con 8083 detenido respondió 502 con origen A3, y con 8082 detenido 502 con origen A2, sin cambios en H2; `/v3/api-docs`, `/v3/api-docs.yaml` y `/swagger-ui.html` respondieron 200.
+- No se probó contra los servicios reales de Irina y Cecilia porque todavía no existían. La colección de Insomnia se validó como JSON; no se importó en la aplicación gráfica.
+- No se tocó la base H2 de desarrollo (`minecraft/data/`).
 
 ## Resumen de prompts
 
