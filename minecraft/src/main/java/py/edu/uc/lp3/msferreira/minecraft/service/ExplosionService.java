@@ -40,6 +40,34 @@ public class ExplosionService {
         );
     }
 
+    /**
+     * Lee de H2 a los participantes de una explosión y la describe como {@link SolicitudValidacion},
+     * el cuerpo que se envía a los compañeros. No modifica la base.
+     */
+    @Transactional(readOnly = true)
+    public SolicitudValidacion describir(SolicitudExplosion solicitud) {
+        if (solicitud == null) {
+            throw new IllegalArgumentException("La solicitud de explosión es obligatoria.");
+        }
+        validarTiempoTranscurrido(solicitud.tiempoTranscurrido());
+        Creeper creeper = obtenerComo(solicitud.creeperId(), Creeper.class);
+        Jugador jugador = obtenerComo(solicitud.jugadorId(), Jugador.class);
+        Aldeano aldeano = obtenerComo(solicitud.aldeanoId(), Aldeano.class);
+        entidadService.validarParaOperacion(creeper, true);
+        entidadService.validarParaOperacion(jugador, true);
+        entidadService.validarParaOperacion(aldeano, true);
+        return new SolicitudValidacion(
+                creeper.getTiempoExplosion(),
+                solicitud.tiempoTranscurrido(),
+                creeper.getRadioExplosion(),
+                Posicion.de(creeper),
+                List.of(
+                        new ObjetivoValidacion("jugador", jugador.getSalud(), Posicion.de(jugador)),
+                        new ObjetivoValidacion("aldeano", aldeano.getSalud(), Posicion.de(aldeano))
+                )
+        );
+    }
+
     @Transactional
     public ResultadoExplosion simular(Long creeperId, Long jugadorId, Long aldeanoId, Integer tiempoTranscurrido) {
         validarTiempoTranscurrido(tiempoTranscurrido);

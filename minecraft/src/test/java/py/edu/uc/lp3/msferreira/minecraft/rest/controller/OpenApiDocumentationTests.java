@@ -45,7 +45,13 @@ class OpenApiDocumentationTests {
                 .andExpect(jsonPath("$.paths['/entidad/atacar'].get").exists())
                 .andExpect(jsonPath("$.paths['/ui'].get").exists())
                 .andExpect(jsonPath("$.paths['/explosiones/simular'].post").exists())
-                .andExpect(jsonPath("$.paths['/api/objetos-externos'].get").exists());
+                .andExpect(jsonPath("$.paths['/api/objetos-externos'].get").exists())
+                .andExpect(jsonPath("$.paths['/explosiones/validar'].post.responses['409']").exists())
+                .andExpect(jsonPath("$.paths['/explosiones/validar'].post.responses['422']").exists())
+                .andExpect(jsonPath("$.paths['/jugadas/explosion'].post.responses['201']").exists())
+                .andExpect(jsonPath("$.paths['/jugadas/explosion'].post.responses['502']").exists())
+                .andExpect(jsonPath("$.paths['/jugadas'].get").exists())
+                .andExpect(jsonPath("$.paths['/jugadas/{id}'].get").exists());
     }
 
     @Test
