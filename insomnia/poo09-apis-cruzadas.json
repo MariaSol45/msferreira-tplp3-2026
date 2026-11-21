@@ -1,0 +1,555 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-11-21T18:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "wrk_poo09_minecraft",
+      "parentId": null,
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "name": "POO-09 Minecraft - APIs cruzadas (A1 María Sol)",
+      "description": "A1 = María Sol (este servicio). A2 = Irina, A3 = Cecilia. Orden de arranque: primero A2 y A3, después A1 (ver README). Ejecutar las carpetas en orden y copiar los ids de los POST de la carpeta 02 al entorno.",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "env_poo09",
+      "parentId": "wrk_poo09_minecraft",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "name": "Base Environment",
+      "data": {
+        "base_url_a1": "http://localhost:8080",
+        "base_url_a2": "http://localhost:8082",
+        "base_url_a3": "http://localhost:8083",
+        "creeper_id": "1",
+        "jugador_id": "2",
+        "aldeano_id": "3"
+      },
+      "dataPropertyOrder": null,
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1,
+      "_type": "environment"
+    },
+    {
+      "_id": "grp_01",
+      "parentId": "wrk_poo09_minecraft",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "name": "01 - OpenAPI de A1, A2 y A3",
+      "description": "Cada servicio publica su contrato. Se importa en Insomnia con Import > From URL.",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 100,
+      "_type": "request_group"
+    },
+    {
+      "_id": "grp_02",
+      "parentId": "wrk_poo09_minecraft",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "name": "02 - Preparación en A1",
+      "description": "Crea los tres participantes en la H2 de A1. Copiar cada id devuelto al entorno.",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 200,
+      "_type": "request_group"
+    },
+    {
+      "_id": "grp_03",
+      "parentId": "wrk_poo09_minecraft",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "name": "03 - Escenario feliz",
+      "description": "A2 y A3 aceptan: la jugada se guarda y el GET la muestra. Respuesta guardada: insomnia/respuestas-ejemplo/01-feliz-201.json.",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 300,
+      "_type": "request_group"
+    },
+    {
+      "_id": "grp_04",
+      "parentId": "wrk_poo09_minecraft",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "name": "04 - Rechazo de A2 (Irina)",
+      "description": "La jugada no se guarda y la respuesta dice origen A2. Respuestas guardadas: 02-rechazo-a2-409.json y 04-a2-caida-502.json.",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 400,
+      "_type": "request_group"
+    },
+    {
+      "_id": "grp_05",
+      "parentId": "wrk_poo09_minecraft",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "name": "05 - Rechazo de A3 (Cecilia)",
+      "description": "La jugada no se guarda y la respuesta dice origen A3. Respuestas guardadas: 03-rechazo-a3-409.json y 05-a3-caida-502.json.",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 500,
+      "_type": "request_group"
+    },
+    {
+      "_id": "grp_06",
+      "parentId": "wrk_poo09_minecraft",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "name": "06 - Mis reglas (A1)",
+      "description": "Mis reglas rechazan antes de consultar a nadie, y mi endpoint de validación para el grupo.",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 600,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_01",
+      "parentId": "grp_01",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/v3/api-docs",
+      "name": "01 - GET OpenAPI de A1 (María Sol)",
+      "description": "200 con el documento OpenAPI 3. Swagger UI: /swagger-ui.html.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 10,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_02",
+      "parentId": "grp_01",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a2 }}/v3/api-docs",
+      "name": "02 - GET OpenAPI de A2 (Irina)",
+      "description": "Ajustar la ruta si Irina publica su OpenAPI en otra URL (ver README).",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 20,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_03",
+      "parentId": "grp_01",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a3 }}/v3/api-docs",
+      "name": "03 - GET OpenAPI de A3 (Cecilia)",
+      "description": "Ajustar la ruta si Cecilia publica su OpenAPI en otra URL (ver README).",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 30,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_04",
+      "parentId": "grp_01",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/jugadas/companeros",
+      "name": "04 - GET a quién consulta A1",
+      "description": "Muestra la URL de validación configurada para A2 y A3.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 40,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_05",
+      "parentId": "grp_02",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/entidades",
+      "name": "05 - POST crear Creeper",
+      "description": "201. Copiar el id a creeper_id. Radio 5, daño 6, detona a los 3 segundos.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"creeper\",\n  \"salud\": 20,\n  \"posicionX\": 0,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1,\n  \"rangoDeteccion\": 5,\n  \"danoAtaque\": 6,\n  \"tiempoExplosion\": 3\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 50,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_06",
+      "parentId": "grp_02",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/entidades",
+      "name": "06 - POST crear Jugador a 2 bloques",
+      "description": "201. Copiar el id a jugador_id.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"jugador\",\n  \"nombre\": \"Steve\",\n  \"nivelEXP\": 0,\n  \"salud\": 20,\n  \"posicionX\": 2,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 60,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_07",
+      "parentId": "grp_02",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/entidades",
+      "name": "07 - POST crear Aldeano a 4 bloques",
+      "description": "201. Copiar el id a aldeano_id.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"aldeano\",\n  \"salud\": 20,\n  \"posicionX\": 4,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1,\n  \"domesticable\": true,\n  \"profesion\": \"Granjero\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 70,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_08",
+      "parentId": "grp_03",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/jugadas/explosion",
+      "name": "08 - POST escenario feliz",
+      "description": "201 con Location /jugadas/{id}. aceptadaPorA2 = Irina y aceptadaPorA3 = Cecilia. Jugador y Aldeano bajan de 20 a 14.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.creeper_id }},\n  \"jugadorId\": {{ _.jugador_id }},\n  \"aldeanoId\": {{ _.aldeano_id }},\n  \"tiempoTranscurrido\": 3\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 80,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_09",
+      "parentId": "grp_03",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/jugadas",
+      "name": "09 - GET jugadas guardadas",
+      "description": "La jugada recién creada aparece en la lista.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 90,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_10",
+      "parentId": "grp_03",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/entidades/{{ _.jugador_id }}",
+      "name": "10 - GET Jugador después",
+      "description": "salud 14 (20 - 6 de daño).",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 100,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_11",
+      "parentId": "grp_04",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a2 }}/explosiones/validar",
+      "name": "11 - POST A2 directo: jugada que rompe su regla",
+      "description": "Muestra el rechazo de A2 en su propio servicio. Mientras Irina no publique, el servicio en 8082 es una copia del mío y rechaza con 422 por radio. Cuando publique, cambiar la URL y el cuerpo por los de su OpenAPI.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tiempoExplosion\": 3,\n  \"tiempoTranscurrido\": 3,\n  \"radioExplosion\": 5,\n  \"creeper\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0\n  },\n  \"objetivos\": [\n    {\n      \"tipo\": \"jugador\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 2,\n        \"y\": 0,\n        \"z\": 0\n      }\n    },\n    {\n      \"tipo\": \"aldeano\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 6,\n        \"y\": 0,\n        \"z\": 0\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 110,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_12",
+      "parentId": "grp_04",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/jugadas/explosion",
+      "name": "12 - POST escenario con rechazo de A2",
+      "description": "Esperado: 409 con origen A2 si Irina rechaza la jugada, o 502 con origen A2 si su servicio está apagado. En ambos casos no se guarda nada. Para probarlo sin Irina: detener el servicio de 8082 y enviar este pedido.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.creeper_id }},\n  \"jugadorId\": {{ _.jugador_id }},\n  \"aldeanoId\": {{ _.aldeano_id }},\n  \"tiempoTranscurrido\": 3\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 120,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_13",
+      "parentId": "grp_04",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/jugadas",
+      "name": "13 - GET jugadas sin cambios (A2)",
+      "description": "La cantidad de jugadas es la misma que antes del rechazo.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 130,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_14",
+      "parentId": "grp_04",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/entidades/{{ _.jugador_id }}",
+      "name": "14 - GET Jugador sin cambios (A2)",
+      "description": "La salud es la misma que antes del rechazo.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 140,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_15",
+      "parentId": "grp_05",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a3 }}/explosiones/validar",
+      "name": "15 - POST A3 directo: jugada que rompe su regla",
+      "description": "Muestra el rechazo de A3 en su propio servicio. Mientras Cecilia no publique, el servicio en 8083 es una copia del mío y rechaza con 409 por detonación. Cuando publique, cambiar la URL y el cuerpo por los de su OpenAPI.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tiempoExplosion\": 3,\n  \"tiempoTranscurrido\": 2,\n  \"radioExplosion\": 5,\n  \"creeper\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0\n  },\n  \"objetivos\": [\n    {\n      \"tipo\": \"jugador\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 2,\n        \"y\": 0,\n        \"z\": 0\n      }\n    },\n    {\n      \"tipo\": \"aldeano\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 4,\n        \"y\": 0,\n        \"z\": 0\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 150,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_16",
+      "parentId": "grp_05",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/jugadas/explosion",
+      "name": "16 - POST escenario con rechazo de A3",
+      "description": "Esperado: 409 con origen A3 si Cecilia rechaza la jugada (A2 ya aceptó), o 502 con origen A3 si su servicio está apagado. No se guarda nada. Para probarlo sin Cecilia: detener el servicio de 8083 (con 8082 arriba) y enviar este pedido.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.creeper_id }},\n  \"jugadorId\": {{ _.jugador_id }},\n  \"aldeanoId\": {{ _.aldeano_id }},\n  \"tiempoTranscurrido\": 3\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 160,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_17",
+      "parentId": "grp_05",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/jugadas",
+      "name": "17 - GET jugadas sin cambios (A3)",
+      "description": "La cantidad de jugadas es la misma que antes del rechazo.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 170,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_18",
+      "parentId": "grp_05",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/entidades/{{ _.jugador_id }}",
+      "name": "18 - GET Jugador sin cambios (A3)",
+      "description": "La salud es la misma que antes del rechazo.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 180,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_19",
+      "parentId": "grp_06",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/jugadas/explosion",
+      "name": "19 - POST escenario antes de detonar",
+      "description": "409 Explosión no preparada. Lo rechaza mi regla y no se consulta a A2 ni a A3.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.creeper_id }},\n  \"jugadorId\": {{ _.jugador_id }},\n  \"aldeanoId\": {{ _.aldeano_id }},\n  \"tiempoTranscurrido\": 1\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 190,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_20",
+      "parentId": "grp_06",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/explosiones/validar",
+      "name": "20 - POST mi validación: acepta",
+      "description": "200 aceptada. Es el endpoint que consumen mis compañeras; no toca H2.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tiempoExplosion\": 3,\n  \"tiempoTranscurrido\": 3,\n  \"radioExplosion\": 5,\n  \"creeper\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0\n  },\n  \"objetivos\": [\n    {\n      \"tipo\": \"jugador\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 2,\n        \"y\": 0,\n        \"z\": 0\n      }\n    },\n    {\n      \"tipo\": \"aldeano\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 4,\n        \"y\": 0,\n        \"z\": 0\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 200,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_21",
+      "parentId": "grp_06",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/explosiones/validar",
+      "name": "21 - POST mi validación: fuera del radio",
+      "description": "422 Objetivo fuera del radio de explosión.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tiempoExplosion\": 3,\n  \"tiempoTranscurrido\": 3,\n  \"radioExplosion\": 5,\n  \"creeper\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0\n  },\n  \"objetivos\": [\n    {\n      \"tipo\": \"jugador\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 2,\n        \"y\": 0,\n        \"z\": 0\n      }\n    },\n    {\n      \"tipo\": \"aldeano\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 6,\n        \"y\": 0,\n        \"z\": 0\n      }\n    }\n  ]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 210,
+      "isPrivate": false,
+      "_type": "request"
+    }
+  ]
+}

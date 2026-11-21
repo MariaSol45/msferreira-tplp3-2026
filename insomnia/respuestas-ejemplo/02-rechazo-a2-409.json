@@ -1,0 +1,14 @@
+{
+  "pedido": "POST /jugadas/explosion",
+  "estado": 409,
+  "cuerpo": {
+    "error": "Jugada rechazada por un compañero",
+    "origen": "A2",
+    "companero": "Irina",
+    "estadoCompanero": 422,
+    "respuestaCompanero": "{\"error\":\"regla de Irina\"}",
+    "mensaje": "La jugada fue rechazada por A2 (Irina). La jugada no se guardó.",
+    "estado": 409
+  },
+  "origen": "Forma de la respuesta verificada por JugadaEscenarioIntegrationTests con un servidor HTTP que responde 422 como A2. respuestaCompanero repite el cuerpo de A2 sin cambios."
+}

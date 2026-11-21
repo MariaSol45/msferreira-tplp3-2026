@@ -1,0 +1,21 @@
+{
+  "pedido": "POST /jugadas/explosion",
+  "estado": 201,
+  "cabeceras": {
+    "Location": "/jugadas/1"
+  },
+  "cuerpo": {
+    "tipo": "Explosión de Creeper",
+    "creeperId": 1,
+    "jugadorId": 2,
+    "aldeanoId": 3,
+    "tiempoTranscurrido": 3,
+    "saludFinalJugador": 14,
+    "saludFinalAldeano": 14,
+    "aceptadaPorA2": "Irina",
+    "aceptadaPorA3": "Cecilia",
+    "registradaEn": "2026-11-21T17:46:40.903055856Z",
+    "id": 1
+  },
+  "origen": "Ejecución real del 21/11/2026 con A2 y A3 reemplazadas por copias de mi servicio en 8082 y 8083."
+}

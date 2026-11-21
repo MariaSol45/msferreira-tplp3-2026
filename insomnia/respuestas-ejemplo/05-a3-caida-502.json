@@ -1,0 +1,14 @@
+{
+  "pedido": "POST /jugadas/explosion",
+  "estado": 502,
+  "cuerpo": {
+    "error": "Compañero no disponible",
+    "origen": "A3",
+    "companero": "Cecilia",
+    "estadoCompanero": null,
+    "respuestaCompanero": null,
+    "mensaje": "A3 (Cecilia) no está disponible: no se pudo llamar a http://localhost:8083/explosiones/validar (conexión rechazada) La jugada no se guardó.",
+    "estado": 502
+  },
+  "origen": "Ejecución real del 21/11/2026 con el servicio de 8083 detenido y 8082 arriba."
+}

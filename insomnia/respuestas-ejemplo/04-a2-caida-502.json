@@ -1,0 +1,14 @@
+{
+  "pedido": "POST /jugadas/explosion",
+  "estado": 502,
+  "cuerpo": {
+    "error": "Compañero no disponible",
+    "origen": "A2",
+    "companero": "Irina",
+    "estadoCompanero": null,
+    "respuestaCompanero": null,
+    "mensaje": "A2 (Irina) no está disponible: no se pudo llamar a http://localhost:8082/explosiones/validar (conexión rechazada) La jugada no se guardó.",
+    "estado": 502
+  },
+  "origen": "Ejecución real del 21/11/2026 con el servicio de 8082 detenido. Después, GET /jugadas siguió con 1 jugada y el Jugador con salud 14."
+}
