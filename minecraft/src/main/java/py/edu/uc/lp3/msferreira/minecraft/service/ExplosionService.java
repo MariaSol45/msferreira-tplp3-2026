@@ -7,6 +7,8 @@ import java.util.NoSuchElementException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import py.edu.uc.lp3.msferreira.minecraft.domain.Aldeano;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Creeper;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Entidad;
@@ -53,15 +55,15 @@ public class ExplosionService {
                 new ObjetivoSimulacion(aldeano, aldeano.getProfesion())
         );
 
-        if (tiempoTranscurrido < creeper.getTiempoExplosion()) {
-            throw new ExplosionNoPreparadaException(
-                    creeper.getTiempoExplosion(), tiempoTranscurrido
-            );
-        }
+        validarDetonacion(creeper.getTiempoExplosion(), tiempoTranscurrido);
 
         // Se validan todos los objetivos antes de modificar su salud para evitar resultados parciales.
         for (ObjetivoSimulacion objetivo : objetivos) {
-            validarObjetivoDentroDelRadio(creeper, objetivo.entidad());
+            validarObjetivoDentroDelRadio(
+                    objetivo.entidad().getClass().getSimpleName(),
+                    distancia(creeper, objetivo.entidad()),
+                    creeper.getRadioExplosion()
+            );
         }
 
         List<ImpactoExplosion> impactos = new ArrayList<>();
@@ -119,23 +121,115 @@ public class ExplosionService {
         return tipoEsperado.cast(entidad);
     }
 
-    private void validarObjetivoDentroDelRadio(Creeper creeper, Entidad objetivo) {
-        double distancia = distancia(creeper, objetivo);
-        if (distancia > creeper.getRadioExplosion()) {
-            throw new ObjetivoFueraDeRangoException(
-                    objetivo.getClass().getSimpleName(), distancia, creeper.getRadioExplosion()
+    /**
+     * Evalúa las dos reglas de la explosión sin leer ni modificar H2.
+     * Es la operación que consumen los compañeros del grupo desde su propio servicio.
+     */
+    public ResultadoValidacion validar(SolicitudValidacion solicitud) {
+        if (solicitud == null) {
+            throw new IllegalArgumentException("La solicitud de validación es obligatoria.");
+        }
+        if (solicitud.tiempoExplosion() == null || solicitud.tiempoExplosion() <= 0) {
+            throw new IllegalArgumentException("El tiempoExplosion debe ser mayor que 0.");
+        }
+        validarTiempoTranscurrido(solicitud.tiempoTranscurrido());
+        if (solicitud.radioExplosion() == null || !Double.isFinite(solicitud.radioExplosion())
+                || solicitud.radioExplosion() < 0) {
+            throw new IllegalArgumentException("El radioExplosion debe ser finito y no negativo.");
+        }
+        validarPosicion("creeper", solicitud.creeper());
+        if (solicitud.objetivos() == null || solicitud.objetivos().isEmpty()) {
+            throw new IllegalArgumentException("Debe indicar al menos un objetivo.");
+        }
+        for (ObjetivoValidacion objetivo : solicitud.objetivos()) {
+            if (objetivo == null || objetivo.tipo() == null || objetivo.tipo().isBlank()) {
+                throw new IllegalArgumentException("Cada objetivo debe indicar su tipo.");
+            }
+            validarPosicion(objetivo.tipo(), objetivo.posicion());
+        }
+
+        validarDetonacion(solicitud.tiempoExplosion(), solicitud.tiempoTranscurrido());
+        for (ObjetivoValidacion objetivo : solicitud.objetivos()) {
+            validarObjetivoDentroDelRadio(
+                    objetivo.tipo(), distancia(solicitud.creeper(), objetivo.posicion()), solicitud.radioExplosion()
             );
+        }
+        return new ResultadoValidacion(
+                true,
+                "La explosión cumple el tiempo de detonación y todos los objetivos están dentro del radio."
+        );
+    }
+
+    private void validarDetonacion(int tiempoExplosion, int tiempoTranscurrido) {
+        if (tiempoTranscurrido < tiempoExplosion) {
+            throw new ExplosionNoPreparadaException(tiempoExplosion, tiempoTranscurrido);
+        }
+    }
+
+    private void validarObjetivoDentroDelRadio(String tipoObjetivo, double distancia, double radioExplosion) {
+        if (distancia > radioExplosion) {
+            throw new ObjetivoFueraDeRangoException(tipoObjetivo, distancia, radioExplosion);
+        }
+    }
+
+    private void validarPosicion(String participante, Posicion posicion) {
+        if (posicion == null || !Double.isFinite(posicion.x()) || !Double.isFinite(posicion.y())
+                || !Double.isFinite(posicion.z())) {
+            throw new IllegalArgumentException("La posición de " + participante + " es obligatoria y debe ser finita.");
         }
     }
 
     private double distancia(Entidad origen, Entidad objetivo) {
-        double diferenciaX = origen.getPosicionX() - objetivo.getPosicionX();
-        double diferenciaY = origen.getPosicionY() - objetivo.getPosicionY();
-        double diferenciaZ = origen.getPosicionZ() - objetivo.getPosicionZ();
-        return Math.hypot(Math.hypot(diferenciaX, diferenciaY), diferenciaZ);
+        return distancia(Posicion.de(origen), Posicion.de(objetivo));
+    }
+
+    private double distancia(Posicion origen, Posicion objetivo) {
+        return Math.hypot(Math.hypot(origen.x() - objetivo.x(), origen.y() - objetivo.y()), origen.z() - objetivo.z());
     }
 
     private record ObjetivoSimulacion(Entidad entidad, String identificador) {
+    }
+
+    @Schema(description = "Explosión a validar con las dos reglas, sin ids ni acceso a la base.")
+    public record SolicitudValidacion(
+            @Schema(description = "Segundos que necesita el Creeper para detonar; mayor que 0.", example = "3")
+            Integer tiempoExplosion,
+            @Schema(description = "Segundos transcurridos desde que se activó; no negativo.", example = "3")
+            Integer tiempoTranscurrido,
+            @Schema(description = "Radio de la explosión en bloques; finito y no negativo.", example = "5")
+            Double radioExplosion,
+            @Schema(description = "Posición del Creeper.")
+            Posicion creeper,
+            @Schema(description = "Objetivos alcanzados por la explosión; al menos uno.")
+            List<ObjetivoValidacion> objetivos
+    ) {
+    }
+
+    @Schema(description = "Objetivo de la explosión.")
+    public record ObjetivoValidacion(
+            @Schema(description = "Tipo del objetivo, por ejemplo jugador o aldeano.", example = "jugador") String tipo,
+            @Schema(description = "Salud actual del objetivo (informativa).", example = "20") Integer salud,
+            @Schema(description = "Posición del objetivo.") Posicion posicion
+    ) {
+    }
+
+    @Schema(description = "Coordenadas en bloques.")
+    public record Posicion(
+            @Schema(example = "0") double x,
+            @Schema(example = "0") double y,
+            @Schema(example = "0") double z
+    ) {
+        public static Posicion de(Entidad entidad) {
+            return new Posicion(entidad.getPosicionX(), entidad.getPosicionY(), entidad.getPosicionZ());
+        }
+    }
+
+    @Schema(description = "Resultado cuando las dos reglas se cumplen.")
+    public record ResultadoValidacion(
+            @Schema(example = "true") boolean aceptada,
+            @Schema(example = "La explosión cumple el tiempo de detonación y todos los objetivos están dentro del radio.")
+            String mensaje
+    ) {
     }
 
     public record SolicitudExplosion(

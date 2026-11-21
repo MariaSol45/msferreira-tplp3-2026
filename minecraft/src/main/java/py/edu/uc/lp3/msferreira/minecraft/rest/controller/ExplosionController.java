@@ -14,7 +14,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import py.edu.uc.lp3.msferreira.minecraft.rest.exception.ExplosionExceptionHandler.ErrorExplosion;
 import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService;
 import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.ResultadoExplosion;
+import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.ResultadoValidacion;
 import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.SolicitudExplosion;
+import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.SolicitudValidacion;
 
 @RestController
 @RequestMapping("/explosiones")
@@ -56,5 +58,29 @@ public class ExplosionController {
                             + "\"estado\":422}")))
     public ResultadoExplosion simular(@RequestBody SolicitudExplosion solicitud) {
         return explosionService.simular(solicitud);
+    }
+
+    @PostMapping("/validar")
+    @Operation(summary = "Validar explosión (para consumir desde otro servicio)",
+            description = "Evalúa las dos reglas con los datos del cuerpo y no lee ni modifica H2. "
+                    + "Regla 1: tiempoTranscurrido >= tiempoExplosion. Regla 2: cada objetivo a una distancia "
+                    + "euclídea del Creeper menor o igual a radioExplosion. 200 significa que la jugada es válida.")
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = SolicitudValidacion.class,
+                            example = "{\"tiempoExplosion\":3,\"tiempoTranscurrido\":3,\"radioExplosion\":5,"
+                                    + "\"creeper\":{\"x\":0,\"y\":0,\"z\":0},\"objetivos\":["
+                                    + "{\"tipo\":\"jugador\",\"salud\":20,\"posicion\":{\"x\":2,\"y\":0,\"z\":0}},"
+                                    + "{\"tipo\":\"aldeano\",\"salud\":20,\"posicion\":{\"x\":4,\"y\":0,\"z\":0}}]}")))
+    @ApiResponse(responseCode = "200", description = "Las dos reglas se cumplen.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ResultadoValidacion.class)))
+    @ApiResponse(responseCode = "400", description = "Faltan datos o tienen valores imposibles.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorExplosion.class)))
+    @ApiResponse(responseCode = "409", description = "Regla 1: el Creeper todavía no detonó.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorExplosion.class)))
+    @ApiResponse(responseCode = "422", description = "Regla 2: algún objetivo está fuera del radio.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorExplosion.class)))
+    public ResultadoValidacion validar(@RequestBody SolicitudValidacion solicitud) {
+        return explosionService.validar(solicitud);
     }
 }
