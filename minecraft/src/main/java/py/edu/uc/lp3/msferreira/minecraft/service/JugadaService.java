@@ -4,6 +4,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -11,8 +13,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Jugada;
 import py.edu.uc.lp3.msferreira.minecraft.repository.JugadaRepository;
 import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.ResultadoExplosion;
+import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.EstadoExplosion;
 import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.SolicitudExplosion;
-import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.SolicitudValidacion;
 import py.edu.uc.lp3.msferreira.minecraft.service.companero.ClienteA2;
 import py.edu.uc.lp3.msferreira.minecraft.service.companero.ClienteA3;
 
@@ -27,6 +29,8 @@ import py.edu.uc.lp3.msferreira.minecraft.service.companero.ClienteA3;
 @Service
 public class JugadaService {
     static final String TIPO_EXPLOSION = "Explosión de Creeper";
+
+    private static final Logger REGISTRO = LoggerFactory.getLogger(JugadaService.class);
 
     private final ExplosionService explosionService;
     private final JugadaRepository jugadaRepository;
@@ -45,12 +49,17 @@ public class JugadaService {
     }
 
     public Jugada registrarExplosion(SolicitudExplosion solicitud) {
-        SolicitudValidacion jugada = explosionService.describir(solicitud);
-        explosionService.validar(jugada);
+        REGISTRO.debug("Paso 1/5: describiendo participantes desde H2");
+        EstadoExplosion estadoCreeper = explosionService.describir(solicitud);
+        REGISTRO.debug("Paso 2/5: evaluando mis dos reglas de explosión");
+        explosionService.validar(estadoCreeper.jugada());
 
-        clienteA2.validar(jugada);
-        clienteA3.validar(jugada);
+        REGISTRO.debug("Paso 3/5: consultando a A2 ({})", clienteA2.getCompanero());
+        clienteA2.validar(estadoCreeper);
+        REGISTRO.debug("Paso 4/5: consultando a A3 ({})", clienteA3.getCompanero());
+        clienteA3.validar(estadoCreeper);
 
+        REGISTRO.debug("Paso 5/5: A2 y A3 aceptaron; aplicando daño y guardando jugada");
         return transaccion.execute(estado -> {
             ResultadoExplosion resultado = explosionService.simular(solicitud);
             return jugadaRepository.save(new Jugada(

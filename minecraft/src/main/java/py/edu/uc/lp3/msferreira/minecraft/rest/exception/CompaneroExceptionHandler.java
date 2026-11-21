@@ -22,6 +22,7 @@ public class CompaneroExceptionHandler {
                 excepcion.getCompanero(),
                 excepcion.getEstadoCompanero(),
                 excepcion.getRespuestaCompanero(),
+                excepcion.getMotivo(),
                 excepcion.getMessage() + " La jugada no se guardó.",
                 HttpStatus.CONFLICT.value()
         );
@@ -34,6 +35,7 @@ public class CompaneroExceptionHandler {
                 "Compañero no disponible",
                 excepcion.getRol(),
                 excepcion.getCompanero(),
+                null,
                 null,
                 null,
                 excepcion.getMessage() + " La jugada no se guardó.",
@@ -50,6 +52,8 @@ public class CompaneroExceptionHandler {
             Integer estadoCompanero,
             @Schema(description = "Cuerpo que devolvió el compañero, sin modificar.", nullable = true)
             String respuestaCompanero,
+            @Schema(description = "Caso devuelto por el compañero: codigo/error de A2 o tipo de A3.", nullable = true)
+            String motivoCompanero,
             @Schema(example = "La jugada fue rechazada por A2 (Irina). La jugada no se guardó.") String mensaje,
             @Schema(example = "409") int estado
     ) {

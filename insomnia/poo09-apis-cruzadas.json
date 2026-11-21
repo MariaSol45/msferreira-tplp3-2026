@@ -21,9 +21,9 @@
       "created": 1795370400000,
       "name": "Base Environment",
       "data": {
-        "base_url_a1": "http://localhost:8080",
-        "base_url_a2": "http://localhost:8082",
-        "base_url_a3": "http://localhost:8083",
+        "base_url_a1": "http://100.87.131.50:8080",
+        "base_url_a2": "http://100.87.95.24:8082",
+        "base_url_a3": "http://100.122.114.103:8083",
         "creeper_id": "1",
         "jugador_id": "2",
         "aldeano_id": "3"
@@ -313,13 +313,13 @@
       "parentId": "grp_04",
       "modified": 1795370400000,
       "created": 1795370400000,
-      "url": "{{ _.base_url_a2 }}/explosiones/validar",
+      "url": "{{ _.base_url_a2 }}/api/minecraft/reglas/mecha-corta",
       "name": "11 - POST A2 directo: jugada que rompe su regla",
-      "description": "Muestra el rechazo de A2 en su propio servicio. Mientras Irina no publique, el servicio en 8082 es una copia del mío y rechaza con 422 por radio. Cuando publique, cambiar la URL y el cuerpo por los de su OpenAPI.",
+      "description": "Regla mecha-corta real de Irina (OpenAPI consultado el 21/11/2026). El jugador está a 6 bloques: responde 422 con codigo fuera_de_alcance.",
       "method": "POST",
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"tiempoExplosion\": 3,\n  \"tiempoTranscurrido\": 3,\n  \"radioExplosion\": 5,\n  \"creeper\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0\n  },\n  \"objetivos\": [\n    {\n      \"tipo\": \"jugador\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 2,\n        \"y\": 0,\n        \"z\": 0\n      }\n    },\n    {\n      \"tipo\": \"aldeano\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 6,\n        \"y\": 0,\n        \"z\": 0\n      }\n    }\n  ]\n}"
+        "text": "{\n  \"saludCreeper\": 20,\n  \"creeper\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0\n  },\n  \"objetivos\": [\n    {\n      \"tipo\": \"jugador\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 6,\n        \"y\": 0,\n        \"z\": 0\n      }\n    },\n    {\n      \"tipo\": \"aldeano\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 1,\n        \"y\": 0,\n        \"z\": 0\n      }\n    }\n  ]\n}"
       },
       "parameters": [],
       "headers": [
@@ -399,11 +399,11 @@
       "created": 1795370400000,
       "url": "{{ _.base_url_a3 }}/explosiones/validar",
       "name": "15 - POST A3 directo: jugada que rompe su regla",
-      "description": "Muestra el rechazo de A3 en su propio servicio. Mientras Cecilia no publique, el servicio en 8083 es una copia del mío y rechaza con 409 por detonación. Cuando publique, cambiar la URL y el cuerpo por los de su OpenAPI.",
+      "description": "Validación real de Cecilia (OpenAPI consultado el 21/11/2026). Con saludCreeper 0 responde 422 CreeperMuertoException; con yaDetonado true responde 409 CreeperYaDetonadoException.",
       "method": "POST",
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"tiempoExplosion\": 3,\n  \"tiempoTranscurrido\": 2,\n  \"radioExplosion\": 5,\n  \"creeper\": {\n    \"x\": 0,\n    \"y\": 0,\n    \"z\": 0\n  },\n  \"objetivos\": [\n    {\n      \"tipo\": \"jugador\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 2,\n        \"y\": 0,\n        \"z\": 0\n      }\n    },\n    {\n      \"tipo\": \"aldeano\",\n      \"salud\": 20,\n      \"posicion\": {\n        \"x\": 4,\n        \"y\": 0,\n        \"z\": 0\n      }\n    }\n  ]\n}"
+        "text": "{\n  \"saludCreeper\": 0,\n  \"yaDetonado\": false\n}"
       },
       "parameters": [],
       "headers": [

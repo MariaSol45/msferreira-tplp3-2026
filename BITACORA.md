@@ -15,6 +15,7 @@
 | ChatGPT | `GPT-5.6 Sol` | Herramienta consignada en la bitácora de la etapa POO-06 como apoyo conversacional. No se atribuyen acciones posteriores sin evidencia adicional. |
 | OpenCode | `openai/gpt-6.2-sol` | Cierre de POO-08: verificación de la base Git, documentación, colección, pruebas y arranque aislado. |
 | Claude Code (app de escritorio) | `claude-opus-5-5` (Claude Opus 5.5) | POO-09: cierre de la última observación de POO-08, OpenAPI, clientes a A2 y A3, escenario, Insomnia, pruebas y documentación. |
+| OpenCode | `opencode/big-pickle` | Integración de POO-09 con los OpenAPI reales de A2 y A3, adaptación de clientes y cuerpo, `yaDetonado` desde H2, externalización de URLs y puerto, pruebas, documentación y verificación. |
 
 ## Cronología verificable
 
@@ -177,6 +178,34 @@ Verificación:
 - Se arrancó el jar tres veces (8080 como A1, y 8082 y 8083 como copias de mi servicio haciendo de A2 y A3), con H2 en memoria. Por HTTP: el camino feliz respondió 201 y GET mostró la jugada y la salud 14; con 8083 detenido respondió 502 con origen A3, y con 8082 detenido 502 con origen A2, sin cambios en H2; `/v3/api-docs`, `/v3/api-docs.yaml` y `/swagger-ui.html` respondieron 200.
 - No se probó contra los servicios reales de Irina y Cecilia porque todavía no existían. La colección de Insomnia se validó como JSON; no se importó en la aplicación gráfica.
 - No se tocó la base H2 de desarrollo (`minecraft/data/`).
+
+### 21 de noviembre de 2026 - integración con los OpenAPI reales de A2 y A3
+
+Sesión con OpenCode (`opencode/big-pickle`). Se pidió completar y verificar la integración en la rama `feature/poo-09-apis-cruzadas`, usando las IP de Tailscale ya informadas para A1 (100.87.131.50:8080), A2 (100.87.95.24:8082) y A3 (100.122.114.103:8083).
+
+Antes de tocar código se revisaron el estado Git (rama y commits), el código existente y los dos OpenAPI reales con `curl` a `/v3/api-docs`. De ellos salieron los esquemas efectivos:
+
+- A2: `POST /api/minecraft/reglas/mecha-corta`, `MechaCortaRequest` con `saludCreeper`, `creeper` y `objetivos`; respuestas 200 `ReglaResponse` (`aceptada`, `regla`, `objetivo`, `distancia`, `mensaje`) y errores 400/409/422 con `error`, `codigo` y `mensaje`.
+- A3: `POST /explosiones/validar`, `ValidacionExplosionRequest` con `saludCreeper` y `yaDetonado`; errores con `tipo` (`CreeperMuertoException`, `CreeperYaDetonadoException`).
+
+Cambios aplicados:
+
+1. `application.properties`: `server.port=${SERVER_PORT:8080}` y URLs/rutas de A2 y A3 con las IP de Tailscale como valores predeterminados; las @Value de los clientes calzan con esos valores.
+2. `ExplosionService.describir` devuelve `EstadoExplosion`: cuerpo de mis reglas más `saludCreeper` y `yaDetonado`. `yaDetonado` se obtiene con `JugadaRepository.existsByCreeperId`, sin agregar columnas al modelo persistente.
+3. `ClienteA2` arma `MechaCortaRequest`; `ClienteA3` arma `ValidacionExplosionRequest`. `ClienteCompanero` interpreta `aceptada`, `codigo`/`tipo` y `mensaje`, exige `aceptada=true` en 2xx, conserva el cuerpo original en el rechazo y registra pasos en DEBUG sin incluir secretos ni cuerpos de pedido.
+4. `ErrorCompanero` incorpora `motivoCompanero`; `JugadaService` mantiene el orden mis reglas → A2 → A3 → escritura transaccional.
+5. Pruebas: 10 en `ClienteCompaneroTests` y 12 en `JugadaEscenarioIntegrationTests`, con servidores HTTP locales. `POST /explosiones/validar` quedó intacto.
+6. README (mapa real, cuatro diagramas de secuencia, variables de entorno y comandos curl), Insomnia (IP Tailscale y cuerpos reales de A2/A3) y esta bitácora.
+
+Verificación:
+
+- `./mvnw test` y `./mvnw -Dsurefire.runOrder=random -Dsurefire.runOrder.random.seed=620824 test`: 132 pruebas, 0 fallos, 0 errores, 0 omitidas en cada ejecución.
+- Arranque del jar smoke con H2 en memoria y puerto efímero: `/`, `/jugadas/companeros` y `/v3/api-docs` respondieron 200; las URL efectivas son las de Tailscale.
+- Llamadas directas reales: A2 aceptó un jugador a 2 bloques (200) y rechazó uno a 6 (422 `fuera_de_alcance`); A3 aceptó `saludCreeper=20, yaDetonado=false` (200) y rechazó `saludCreeper=0` (422 `CreeperMuertoException`).
+- Escenario real contra A2: con el jugador a 4,5 bloques A2 devolvió 422 y A1 respondió 409 con `origen=A2`, `estadoCompanero=422`, `motivoCompanero=fuera_de_alcance` y el cuerpo original, sin guardar jugada ni aplicar daño.
+- Incidente externo: poco después, A3 dejó de responder (tiempo de espera agotado en `curl` y en Java); el escenario respondió correctamente 502 con `origen=A3` y sin cambios en H2. Para el camino feliz con A3 real queda repetir la prueba cuando Cecilia vuelva a publicar el servicio.
+- Diagramas UML de secuencia en Mermaid: se completaron los cinco que pide la rúbrica (camino feliz, rechazo de A2 con 422, rechazo de A3 con 409, reglas propias 400/409/422 y fallo de comunicación 502) con índice enlazado desde README. Cada diagrama muestra solo A1, A2, A3 y H2 cuando intervienen, y una tabla distingue lo verificado de lo pendiente. El camino feliz real A1 → A2 → A3 queda registrado como **pendiente porque Cecilia no responde**; no se presenta como probado con los tres servicios reales.
+- No se ejecutaron `git add`, commit, push, merge ni cambios de rama. No se tocó la H2 de desarrollo.
 
 ## Resumen de prompts
 

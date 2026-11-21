@@ -25,35 +25,160 @@ Referencias: [enunciado POO-08](https://github.com/alefq/afq-taller-git-2024/blo
 
 ### Mapa del grupo (Minecraft)
 
-| Rol | Integrante | URL base | OpenAPI | Sus dos reglas |
+| Rol | Integrante | URL base (Tailscale) | OpenAPI | Regla que aporta |
 |---|---|---|---|---|
-| A1 | María Sol Ferreira (este servicio) | `http://localhost:8080` | `http://localhost:8080/v3/api-docs` (JSON), `/v3/api-docs.yaml`, Swagger UI en `/swagger-ui.html` | (1) Un Creeper solo explota si `tiempoTranscurrido >= tiempoExplosion`; si no, 409. (2) Todos los objetivos tienen que estar a una distancia euclídea del Creeper menor o igual al radio de explosión; si no, 422 y nadie recibe daño. |
-| A2 | Irina | `http://localhost:8082` (a confirmar) | Pendiente: al 21/11/2026 todavía no publicó su OpenAPI. | Pendiente de su OpenAPI. |
-| A3 | Cecilia | `http://localhost:8083` (a confirmar) | Pendiente: al 21/11/2026 todavía no publicó su OpenAPI. | Pendiente de su OpenAPI. |
+| A1 | María Sol Ferreira (este servicio) | `http://100.87.131.50:8080` (local: `http://localhost:8080`) | `http://100.87.131.50:8080/v3/api-docs` (JSON), `/v3/api-docs.yaml`, Swagger UI en `/swagger-ui.html` | (1) Un Creeper solo explota si `tiempoTranscurrido >= tiempoExplosion`; si no, 409. (2) Todos los objetivos tienen que estar a una distancia euclídea del Creeper menor o igual al radio de explosión; si no, 422 y nadie recibe daño. |
+| A2 | Irina | `http://100.87.95.24:8082` | `http://100.87.95.24:8082/v3/api-docs` | `POST /api/minecraft/reglas/mecha-corta`: un Creeper vivo solo detona si hay un jugador vivo a 3 bloques o menos. 200 acepta; 422 `fuera_de_alcance`; 409 `entidad_muerta`; 400 `dato_invalido`. |
+| A3 | Cecilia | `http://100.122.114.103:8083` | `http://100.122.114.103:8083/v3/api-docs` | `POST /explosiones/validar`: un Creeper muerto no detona (422) y uno que ya detonó no vuelve a detonar (409). |
 
-Mis dos reglas para el grupo se consumen con [`POST /explosiones/validar`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/rest/controller/ExplosionController.java), que evalúa las reglas con los datos del cuerpo y no lee ni modifica mi H2. Código de las reglas: [`ExplosionService`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/service/ExplosionService.java).
+Mis dos reglas para el grupo se consumen con [`POST /explosiones/validar`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/rest/controller/ExplosionController.java), que evalúa las reglas con los datos del cuerpo y no lee ni modifica mi H2. Código de las reglas: [`ExplosionService`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/service/ExplosionService.java). Ese endpoint sigue respondiendo 200, 400, 409 y 422 y no fue modificado.
 
-> **Pendiente con Irina y Cecilia.** Cuando publiquen su OpenAPI hay que: completar esta tabla con su URL y sus reglas; poner su URL base y su ruta de validación en `application.properties` (o en las variables de entorno); y, si su cuerpo de pedido es distinto del mío, adaptar `armarCuerpo` en [`ClienteA2`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/service/companero/ClienteA2.java) o [`ClienteA3`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/service/companero/ClienteA3.java). Mientras tanto, los clientes usan como contrato propuesto el mismo cuerpo de mi `/explosiones/validar`, y para las pruebas locales A2 y A3 son copias de mi servicio en 8082 y 8083.
+Los contratos de A2 y A3 se consultaron en sus OpenAPI reales y se adaptaron en `armarCuerpo` de [`ClienteA2`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/service/companero/ClienteA2.java) y [`ClienteA3`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/service/companero/ClienteA3.java):
+
+- A2 recibe `{"saludCreeper":20,"creeper":{"x":0,"y":0,"z":0},"objetivos":[{"tipo":"jugador","salud":20,"posicion":{"x":2,"y":0,"z":0}}]}`. El cliente interpreta `aceptada`, `codigo`, `mensaje` y `regla` de la respuesta y conserva el cuerpo original del rechazo.
+- A3 recibe `{"saludCreeper":20,"yaDetonado":false}`. Ambos valores salen de mi H2: la salud del `Creeper` y si ya existe una `Jugada` registrada para ese `creeperId`.
+
+No se usa `localhost` para llamar a A2 ni a A3: las URLs por defecto son las IP de Tailscale y se pueden cambiar sin tocar Java.
 
 ### Escenario
 
 `POST /jugadas/explosion` con `{"creeperId", "jugadorId", "aldeanoId", "tiempoTranscurrido"}`: un Creeper explota sobre un Jugador y un Aldeano guardados en mi H2, y la jugada se guarda solo si A2 y A3 la aceptan.
 
+Índice de los cinco diagramas exigidos por la rúbrica:
+
+1. [Camino feliz (validaciones HTTP 200)](#1-camino-feliz-validaciones-http-200)
+2. [Rechazo de Irina (A2) (HTTP 422)](#2-rechazo-de-irina-a2-http-422)
+3. [Rechazo de Cecilia (A3) (HTTP 409)](#3-rechazo-de-cecilia-a3-http-409)
+4. [Validaciones propias (HTTP 400, 409 y 422)](#4-validaciones-propias-http-400-409-y-422)
+5. [Fallo de comunicacion (HTTP 502)](#5-fallo-de-comunicacion-http-502)
+
+Los diagramas muestran A1, A2, A3 y H2 solo cuando intervienen. El camino feliz con los tres servicios reales está **pendiente**; los estados de verificación se resumen al final de esta sección.
+
+#### 1. Camino feliz (validaciones HTTP 200)
+
 ```mermaid
 sequenceDiagram
-    participant C as Cliente (Insomnia)
+    participant C as Cliente
     participant A1 as A1 María Sol
+    participant H2 as H2 A1
     participant A2 as A2 Irina
     participant A3 as A3 Cecilia
     C->>A1: POST /jugadas/explosion
-    A1->>A1: leer participantes de H2 y evaluar mis dos reglas
-    A1->>A2: POST ruta de validación de A2
-    A2-->>A1: 2xx acepta / 4xx rechaza
-    A1->>A3: POST ruta de validación de A3 (solo si A2 aceptó)
-    A3-->>A1: 2xx acepta / 4xx rechaza
-    A1->>A1: aplicar daño y guardar Jugada (una transacción)
+    A1->>H2: describir: leer Creeper, Jugador, Aldeano y Jugadas
+    H2-->>A1: salud, posiciones, yaDetonado
+    A1->>A1: mis dos reglas: tiempo y radio (correctas)
+    A1->>A2: POST /api/minecraft/reglas/mecha-corta (saludCreeper, creeper, objetivos)
+    A2-->>A1: 200 aceptada=true
+    A1->>A3: POST /explosiones/validar (saludCreeper, yaDetonado)
+    A3-->>A1: 200 aceptada=true
+    A1->>H2: aplicar daño y guardar Jugada (una transacción)
     A1-->>C: 201 + Location /jugadas/{id}
 ```
+
+**Estado:** verificado con los servidores HTTP locales de `JugadaEscenarioIntegrationTests`. **Pendiente de verificar con A2 y A3 reales**: Cecilia no responde en esta sesión, así que este diagrama no se presenta como probado contra los tres servicios.
+
+#### 2. Rechazo de Irina (A2) (HTTP 422)
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant A1 as A1 María Sol
+    participant H2 as H2 A1
+    participant A2 as A2 Irina
+    participant A3 as A3 Cecilia
+    C->>A1: POST /jugadas/explosion
+    A1->>H2: describir: leer Creeper, Jugador, Aldeano y Jugadas
+    H2-->>A1: salud, posiciones, yaDetonado
+    A1->>A1: mis dos reglas: correctas (si fallan: 400/404/409/422, sin A2)
+    A1->>A2: POST /api/minecraft/reglas/mecha-corta
+    A2-->>A1: 422 codigo=fuera_de_alcance
+    A1-->>C: 409 ErrorCompanero (origen=A2, estadoCompanero=422, motivoCompanero=fuera_de_alcance)
+    Note over A1,H2: A3 no se consulta; no se aplica daño ni se guarda Jugada
+```
+
+A2 también puede responder 409 (`entidad_muerta`) o 400 (`dato_invalido`); A1 los traduce a 409 con el `motivoCompanero` correspondiente.
+
+#### 3. Rechazo de Cecilia (A3) (HTTP 409)
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant A1 as A1 María Sol
+    participant H2 as H2 A1
+    participant A2 as A2 Irina
+    participant A3 as A3 Cecilia
+    C->>A1: POST /jugadas/explosion
+    A1->>H2: describir: leer Creeper, Jugador, Aldeano y Jugadas
+    H2-->>A1: salud, posiciones, yaDetonado
+    A1->>A1: mis dos reglas: correctas
+    A1->>A2: POST /api/minecraft/reglas/mecha-corta
+    A2-->>A1: 200 aceptada=true
+    A1->>A3: POST /explosiones/validar (yaDetonado=true si ya hay Jugada)
+    A3-->>A1: 409 tipo=CreeperYaDetonadoException
+    A1-->>C: 409 ErrorCompanero (origen=A3, estadoCompanero=409, motivoCompanero=CreeperYaDetonadoException)
+    Note over A1,H2: no se aplica daño ni se guarda Jugada
+```
+
+A3 también responde 422 con `tipo=CreeperMuertoException`; A1 lo traduce a 409 con `motivoCompanero=CreeperMuertoException`.
+
+#### 4. Validaciones propias (HTTP 400, 409 y 422)
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant A1 as A1 María Sol
+    C->>A1: POST /explosiones/validar
+    A1->>A1: validar datos, tiempo y radio
+    alt datos ausentes o imposibles
+        A1-->>C: 400 ErrorExplosion (Entrada inválida)
+    else tiempo insuficiente (tiempoTranscurrido menor a tiempoExplosion)
+        A1-->>C: 409 ErrorExplosion (Explosión no preparada)
+    else algún objetivo fuera del radio
+        A1-->>C: 422 ErrorExplosion (Objetivo fuera del radio)
+    else todo correcto
+        A1-->>C: 200 valida=true
+    end
+    Note over C,A1: A2, A3 y H2 no intervienen: este endpoint no lee ni modifica la base
+```
+
+En `/jugadas/explosion` estas mismas reglas se ejecutan en A1 después de leer H2 y antes de consultar a A2. Un 400 por participante de otro tipo o muerto, un 404 por id inexistente, el 409 de tiempo y el 422 de radio detienen el escenario sin llamar a los compañeros.
+
+#### 5. Fallo de comunicacion (HTTP 502)
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant A1 as A1 María Sol
+    participant H2 as H2 A1
+    participant A2 as A2 Irina
+    participant A3 as A3 Cecilia
+    C->>A1: POST /jugadas/explosion
+    A1->>H2: describir: leer Creeper, Jugador, Aldeano y Jugadas
+    H2-->>A1: salud, posiciones, yaDetonado
+    A1->>A1: mis dos reglas: correctas
+    alt A2 falla
+        A1->>A2: POST /api/minecraft/reglas/mecha-corta
+        A2--xA1: timeout / 5xx / respuesta sin aceptada=true
+        A1-->>C: 502 ErrorCompanero (origen=A2)
+    else A2 acepta y A3 falla
+        A1->>A2: POST /api/minecraft/reglas/mecha-corta
+        A2-->>A1: 200 aceptada=true
+        A1->>A3: POST /explosiones/validar
+        A3--xA1: timeout / 5xx / respuesta sin aceptada=true
+        A1-->>C: 502 ErrorCompanero (origen=A3)
+    end
+    Note over A1,H2: H2 queda igual; una llamada fallida nunca cuenta como aprobación
+```
+
+**Verificación de los cinco diagramas:**
+
+| Diagrama | Estado |
+|---|---|
+| 1. Camino feliz | **Pendiente con servicios reales** (A3/Cecilia no responde); cubierto con servidores locales en `JugadaEscenarioIntegrationTests`. |
+| 2. Rechazo de A2 | **Verificado con A2 real**: el smoke respondió 422 `fuera_de_alcance` y A1 devolvió 409 con `origen=A2`, `estadoCompanero=422` y `motivoCompanero=fuera_de_alcance`, sin guardar jugada. |
+| 3. Rechazo de A3 | Implementado y cubierto con servidor local y con el OpenAPI real de A3; **sin observación real del 409** porque Cecilia no responde. Sí se observó su 422 real antes de la caída. |
+| 4. Reglas propias | **Verificado** en `ExplosionValidacionIntegrationTests` y en la colección POO-08 de Insomnia; `/explosiones/validar` no toca H2. |
+| 5. Fallo de comunicación | **Verificado**: la caída real de A3 produjo 502 con `origen=A3` y sin cambios en H2; 5xx, conexión rechazada y respuestas inesperadas están en `ClienteCompaneroTests`. |
 
 Orden y por qué:
 
@@ -66,8 +191,8 @@ Respuestas:
 | Caso | Código | Cuerpo |
 |---|---:|---|
 | A2 y A3 aceptan | 201 | La `Jugada` guardada, con `aceptadaPorA2`, `aceptadaPorA3` y las saludes finales; `Location: /jugadas/{id}`. |
-| A2 o A3 rechaza (4xx) | 409 | `ErrorCompanero` con `origen` (`A2` o `A3`), `companero`, `estadoCompanero` y `respuestaCompanero` (el cuerpo que devolvió, sin modificar). |
-| A2 o A3 no responde, se agota el tiempo o devuelve 5xx | 502 | `ErrorCompanero` con `origen` y el motivo. |
+| A2 o A3 rechaza (4xx) | 409 | `ErrorCompanero` con `origen` (`A2` o `A3`), `companero`, `estadoCompanero`, `motivoCompanero` (`codigo` de A2 o `tipo` de A3) y `respuestaCompanero` (el cuerpo original, sin modificar). |
+| A2 o A3 no responde, se agota el tiempo, devuelve 5xx o un 200 sin `aceptada=true` | 502 | `ErrorCompanero` con `origen` y el motivo. |
 | Mi regla de detonación | 409 | `ErrorExplosion` "Explosión no preparada" (sin `origen`: es mía). |
 | Mi regla de radio | 422 | `ErrorExplosion` "Objetivo fuera del radio de explosión". |
 | Id inexistente / dato inválido | 404 / 400 | No se consulta a A2 ni a A3. |
@@ -79,45 +204,90 @@ Respuestas:
 - **¿Dónde está el OpenAPI y qué cubre?** En `/v3/api-docs` (JSON), `/v3/api-docs.yaml` y `/swagger-ui.html`, generado con springdoc. Cubre el CRUD de `/entidades`, la simulación (`/explosiones/simular`), la validación para el grupo (`/explosiones/validar`), el escenario (`/jugadas`) y los errores de las dos reglas (409 y 422 con su cuerpo y ejemplo). Se puede importar en Insomnia con *Import > From URL* sin tener el código.
 - **¿Qué hace necesarias las dos validaciones?** Cada compañera es dueña de una regla de Minecraft distinta y la jugada tiene que ser legal para todas; si solo se consultara a una, se podría guardar una jugada que rompe la regla de la otra.
 - **¿Qué queda igual si A2 acepta y A3 rechaza?** Todo lo de mi H2: no se crea la `Jugada` y ni el Jugador ni el Aldeano reciben daño. A2 solo validó, no guardó nada de mi lado. Lo comprueban `JugadaEscenarioIntegrationTests.rechazoDeA3NoGuardaNada` y los GET de la carpeta 05 de Insomnia.
-- **¿Cómo se configuran las URL de A2 y A3?** En `minecraft/src/main/resources/application.properties` (`companeros.a2.*`, `companeros.a3.*`, `companeros.timeout-segundos`) o con variables de entorno sin tocar el código: `A2_BASE_URL`, `A2_RUTA_VALIDACION`, `A3_BASE_URL`, `A3_RUTA_VALIDACION`.
+- **¿Cómo se configuran las URL de A2 y A3?** En `minecraft/src/main/resources/application.properties` (`companeros.a2.*`, `companeros.a3.*`, `companeros.timeout-segundos`) o con variables de entorno sin tocar el código.
+
+| Variable de entorno | Propiedad | Valor predeterminado |
+|---|---|---|
+| `SERVER_PORT` | `server.port` | `8080` |
+| `A2_BASE_URL` | `companeros.a2.base-url` | `http://100.87.95.24:8082` |
+| `A2_RUTA_VALIDACION` | `companeros.a2.ruta-validacion` | `/api/minecraft/reglas/mecha-corta` |
+| `A3_BASE_URL` | `companeros.a3.base-url` | `http://100.122.114.103:8083` |
+| `A3_RUTA_VALIDACION` | `companeros.a3.ruta-validacion` | `/explosiones/validar` |
+
+`GET /jugadas/companeros` devuelve las URL efectivas, útil para confirmar la configuración antes de probar el escenario. Para ver los pasos de integración: `-Dlogging.level.py.edu.uc.lp3.msferreira.minecraft.service=DEBUG` (o `LOGGING_LEVEL_PY_EDU_UC_LP3_MSFERREIRA_MINECRAFT_SERVICE=DEBUG`). Los logs no incluyen contraseñas ni cuerpos de pedido.
 - **¿Se propagan o se traducen los errores?** Se traducen a mi jerarquía: `CompaneroException` (abstracta) con `RechazoCompaneroException` (4xx) y `CompaneroNoDisponibleException` (sin respuesta o 5xx). `CompaneroExceptionHandler` responde 409 o 502 y el campo `origen` distingue A2 de A3. El cuerpo original del compañero se conserva en `respuestaCompanero`.
 - **Si una compañera renombra una ruta, ¿alcanza con su OpenAPI?** Sí: la ruta y la URL son configuración. No se copió código de nadie; los clientes solo conocen la URL, el verbo y el cuerpo publicados.
 
 ### Cómo arrancar los tres servicios
 
-Orden: primero A2 y A3 (que no dependen de nadie), después A1. Cada uno en su terminal:
+Las tres máquinas tienen que estar conectadas por Tailscale. Cada integrante arranca su servicio en su equipo con su puerto; A1 ya trae las IP de A2 y A3 como valores predeterminados:
 
 ```bash
-# A2 (Irina): en su repositorio, desde la carpeta de su proyecto
+# A2 (Irina): en su repositorio, en su máquina
 ./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=8082
 
-# A3 (Cecilia): en su repositorio, desde la carpeta de su proyecto
+# A3 (Cecilia): en su repositorio, en su máquina
 ./mvnw spring-boot:run -Dspring-boot.run.arguments=--server.port=8083
 
-# A1 (este repositorio)
+# A1 (este repositorio), en la máquina de María Sol
 cd minecraft
 ./mvnw spring-boot:run
 ```
 
-Si A2 o A3 corren en otra máquina del laboratorio:
+Si cambian las IP o los puertos, alcanza con las variables de entorno (sin editar Java):
 
 ```bash
 cd minecraft
-A2_BASE_URL=http://IP-DE-IRINA:8082 A3_BASE_URL=http://IP-DE-CECILIA:8083 ./mvnw spring-boot:run
-```
-
-Mientras Irina y Cecilia no publiquen, para probar el recorrido completo en una sola máquina se puede usar mi propio servicio como A2 y A3, cada uno con su H2 en memoria:
-
-```bash
-cd minecraft
-./mvnw spring-boot:run -Dspring-boot.run.arguments="--server.port=8082 --spring.datasource.url=jdbc:h2:mem:a2"
-./mvnw spring-boot:run -Dspring-boot.run.arguments="--server.port=8083 --spring.datasource.url=jdbc:h2:mem:a3"
+SERVER_PORT=8080 \
+A2_BASE_URL=http://100.87.95.24:8082 \
+A2_RUTA_VALIDACION=/api/minecraft/reglas/mecha-corta \
+A3_BASE_URL=http://100.122.114.103:8083 \
+A3_RUTA_VALIDACION=/explosiones/validar \
 ./mvnw spring-boot:run
 ```
+
+### Comandos para probar las tres APIs conectadas
+
+Ejecutarlos desde cualquier máquina de la cola Tailscale. Sustituir los IDs por los que devuelvan los POST de creación.
+
+```bash
+A1=http://100.87.131.50:8080
+A2=http://100.87.95.24:8082
+A3=http://100.122.114.103:8083
+
+# 1. Contratos y configuración efectiva de A1
+curl -s "$A2/v3/api-docs" | jq '.info.title, (.paths | keys)'
+curl -s "$A3/v3/api-docs" | jq '.info.title, (.paths | keys)'
+curl -s "$A1/v3/api-docs" | jq '.info.title, (.paths | keys)'
+curl -s "$A1/jugadas/companeros" | jq .
+
+# 2. Reglas de cada API por separado
+curl -i -X POST "$A2/api/minecraft/reglas/mecha-corta" -H 'Content-Type: application/json' \
+  -d '{"saludCreeper":20,"creeper":{"x":0,"y":0,"z":0},"objetivos":[{"tipo":"jugador","salud":20,"posicion":{"x":2,"y":0,"z":0}}]}'
+curl -i -X POST "$A3/explosiones/validar" -H 'Content-Type: application/json' \
+  -d '{"saludCreeper":20,"yaDetonado":false}'
+curl -i -X POST "$A1/explosiones/validar" -H 'Content-Type: application/json' \
+  -d '{"tiempoExplosion":3,"tiempoTranscurrido":3,"radioExplosion":5,"creeper":{"x":0,"y":0,"z":0},"objetivos":[{"tipo":"jugador","salud":20,"posicion":{"x":2,"y":0,"z":0}}]}'
+
+# 3. Preparar participantes en A1 (creeper, jugador a 2 bloques, aldeano a 4 bloques)
+curl -s -X POST "$A1/entidades" -H 'Content-Type: application/json' \
+  -d '{"tipo":"creeper","salud":20,"posicionX":0,"posicionY":0,"posicionZ":0,"velocidad":1,"rangoDeteccion":5,"danoAtaque":6,"tiempoExplosion":3}' | jq .
+curl -s -X POST "$A1/entidades" -H 'Content-Type: application/json' \
+  -d '{"tipo":"jugador","nombre":"Steve","nivelEXP":0,"salud":20,"posicionX":2,"posicionY":0,"posicionZ":0,"velocidad":1}' | jq .
+curl -s -X POST "$A1/entidades" -H 'Content-Type: application/json' \
+  -d '{"tipo":"aldeano","salud":20,"posicionX":4,"posicionY":0,"posicionZ":0,"velocidad":1,"domesticable":true,"profesion":"Granjero"}' | jq .
+
+# 4. Escenario cruzado: 201 solo si A2 y A3 aceptan
+curl -i -X POST "$A1/jugadas/explosion" -H 'Content-Type: application/json' \
+  -d '{"creeperId":1,"jugadorId":2,"aldeanoId":3,"tiempoTranscurrido":3}'
+curl -s "$A1/jugadas" | jq .
+```
+
+Las mismas solicitudes están en [`insomnia/poo09-apis-cruzadas.json`](insomnia/poo09-apis-cruzadas.json), con el entorno apuntando a las tres IP de Tailscale.
 
 ### Si un compañero no responde
 
-El escenario responde 502 con el `origen` y no guarda nada. Las respuestas de ejemplo de cada caso están en [`insomnia/respuestas-ejemplo/`](insomnia/respuestas-ejemplo/): el camino feliz y las caídas son ejecuciones reales del 21/11/2026 con copias de mi servicio; los dos 409 tienen la forma verificada por las pruebas automáticas con un servidor HTTP que hace de A2 o A3. Al 21/11/2026 Irina y Cecilia todavía no habían publicado su OpenAPI.
+El escenario responde 502 con el `origen` y no guarda nada; tampoco si un 200 no trae `aceptada=true`. Para confirmar los rechazos sin depender de las compañeras, apagar una de ellas o cambiar su IP con las variables de entorno. Las respuestas de ejemplo están en [`insomnia/respuestas-ejemplo/`](insomnia/respuestas-ejemplo/); las automatizadas usan servidores HTTP locales que simulan a A2 y A3.
 
 ## Objetivo
 
@@ -298,7 +468,7 @@ Este ejercicio no intenta reproducir todo Minecraft vanilla:
 - el daño es plano y no disminuye con la distancia;
 - no se modelan dificultad, armadura, bloques, línea de visión ni Creeper cargado;
 - la operación exige exactamente un Jugador y un Aldeano, ambos dentro del radio;
-- el Creeper no se elimina ni cambia de estado después de simular; repetir una solicitud válida puede causar daño de nuevo. Las entidades con salud cero permanecen en la base, pero no pueden participar en otra explosión.
+- el Creeper no se elimina ni cambia de estado después de simular; repetir `/explosiones/simular` puede causar daño de nuevo. En el escenario POO-09, en cambio, A3 recibe `yaDetonado=true` cuando ya existe una `Jugada` para ese Creeper y rechaza la repetición con 409. Las entidades con salud cero permanecen en la base, pero no pueden participar en otra explosión.
 
 Estas decisiones son deliberadas y están aisladas en `ExplosionService`, por lo que pueden evolucionar sin cambiar el contrato actual.
 
@@ -371,13 +541,15 @@ cd minecraft
 ./mvnw -Dsurefire.runOrder=random -Dsurefire.runOrder.random.seed=620824 test
 ```
 
-Resultado de POO-09 (21/11/2026): **120 pruebas, 0 fallos, 0 errores, 0 omitidas** en orden normal y en orden aleatorio con la semilla indicada. En el cierre de POO-08 (`4e4c38c`) eran 96.
+Resultado de POO-09 (21/11/2026, integración adaptada a los OpenAPI reales): **132 pruebas, 0 fallos, 0 errores, 0 omitidas** en orden normal y en orden aleatorio con la semilla indicada. En el cierre de POO-08 (`4e4c38c`) eran 96.
 
-Pruebas nuevas de POO-09:
+Pruebas nuevas y actualizadas de POO-09:
 
-- `ExplosionValidacionIntegrationTests`: `/explosiones/validar` acepta, rechaza con 409 y 422, responde 400 sin objetivos y no toca H2.
-- `ClienteCompaneroTests`: contra un servidor HTTP real (el `HttpServer` del JDK) que hace de compañero, un 2xx acepta, un 4xx se traduce en rechazo con rol y cuerpo, y un 5xx o una conexión rechazada en "no disponible".
-- `JugadaEscenarioIntegrationTests`: con dos de esos servidores como A2 y A3, el camino feliz guarda y se lee con GET; el rechazo de A2 no guarda nada y no consulta a A3; el rechazo de A3 no guarda nada; A3 caída devuelve 502 con origen; mi regla rechaza antes de consultar a nadie.
+- `ExplosionValidacionIntegrationTests`: `/explosiones/validar` acepta, rechaza con 409 y 422, responde 400 sin objetivos y no toca H2; contrato sin cambios.
+- `ClienteCompaneroTests` (10): contra un servidor HTTP real (el `HttpServer` del JDK), el cuerpo exacto de `MechaCortaRequest` y de `ValidacionExplosionRequest`, los rechazos 400/409/422 de A2 con su `codigo`, el `tipo` de A3, 5xx, conexión rechazada y respuestas 200 inesperadas (sin `aceptada` o con `aceptada=false`).
+- `JugadaEscenarioIntegrationTests` (12): con dos servidores locales como A2 y A3, el camino feliz guarda y se lee con GET; `GET /jugadas/companeros` muestra las rutas configuradas; rechazos de A2 (`fuera_de_alcance`, `entidad_muerta`, `dato_invalido`) y de A3 (`CreeperMuertoException`, `CreeperYaDetonadoException`) no guardan nada; un Creeper con `Jugada` previa se envía como `yaDetonado=true`; 5xx y respuestas inesperadas dan 502 con `origen`; mis reglas rechazan antes de consultar a nadie.
+
+Las pruebas usan siempre `127.0.0.1` con servidores efímeros o `localhost:9`; no necesitan que A2 ni A3 estén encendidas. `src/test/resources/application.properties` pisa las URLs de Tailscale con destinos locales.
 
 La cobertura incluye POST Jugador con `0`, `-1`, `30` y `5000` sin inserción y límites `1` y `20` válidos; POST con ID ajeno; PUT incompleto, nulo o inválido sin cambios; muerte y recuperación; coerciones JSON; `JOINED` físico; e interfaz `UICapable` persistida. La simulación prueba 409 y 422 sin daño, participantes inválidos, distancias extremas y daño limitado a la salud disponible.
 

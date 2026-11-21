@@ -14,6 +14,7 @@ import py.edu.uc.lp3.msferreira.minecraft.domain.Creeper;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Entidad;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Jugador;
 import py.edu.uc.lp3.msferreira.minecraft.repository.EntidadRepository;
+import py.edu.uc.lp3.msferreira.minecraft.repository.JugadaRepository;
 import py.edu.uc.lp3.msferreira.minecraft.service.exception.ExplosionNoPreparadaException;
 import py.edu.uc.lp3.msferreira.minecraft.service.exception.ObjetivoFueraDeRangoException;
 
@@ -21,10 +22,13 @@ import py.edu.uc.lp3.msferreira.minecraft.service.exception.ObjetivoFueraDeRango
 public class ExplosionService {
     private final EntidadRepository entidadRepository;
     private final EntidadService entidadService;
+    private final JugadaRepository jugadaRepository;
 
-    public ExplosionService(EntidadRepository entidadRepository, EntidadService entidadService) {
+    public ExplosionService(EntidadRepository entidadRepository, EntidadService entidadService,
+                            JugadaRepository jugadaRepository) {
         this.entidadRepository = entidadRepository;
         this.entidadService = entidadService;
+        this.jugadaRepository = jugadaRepository;
     }
 
     @Transactional
@@ -41,11 +45,11 @@ public class ExplosionService {
     }
 
     /**
-     * Lee de H2 a los participantes de una explosión y la describe como {@link SolicitudValidacion},
-     * el cuerpo que se envía a los compañeros. No modifica la base.
+     * Lee de H2 a los participantes y al estado del Creeper para construir lo que reciben los compañeros.
+     * No modifica la base.
      */
     @Transactional(readOnly = true)
-    public SolicitudValidacion describir(SolicitudExplosion solicitud) {
+    public EstadoExplosion describir(SolicitudExplosion solicitud) {
         if (solicitud == null) {
             throw new IllegalArgumentException("La solicitud de explosión es obligatoria.");
         }
@@ -56,15 +60,19 @@ public class ExplosionService {
         entidadService.validarParaOperacion(creeper, true);
         entidadService.validarParaOperacion(jugador, true);
         entidadService.validarParaOperacion(aldeano, true);
-        return new SolicitudValidacion(
-                creeper.getTiempoExplosion(),
-                solicitud.tiempoTranscurrido(),
-                creeper.getRadioExplosion(),
-                Posicion.de(creeper),
-                List.of(
-                        new ObjetivoValidacion("jugador", jugador.getSalud(), Posicion.de(jugador)),
-                        new ObjetivoValidacion("aldeano", aldeano.getSalud(), Posicion.de(aldeano))
-                )
+        return new EstadoExplosion(
+                new SolicitudValidacion(
+                        creeper.getTiempoExplosion(),
+                        solicitud.tiempoTranscurrido(),
+                        creeper.getRadioExplosion(),
+                        Posicion.de(creeper),
+                        List.of(
+                                new ObjetivoValidacion("jugador", jugador.getSalud(), Posicion.de(jugador)),
+                                new ObjetivoValidacion("aldeano", aldeano.getSalud(), Posicion.de(aldeano))
+                        )
+                ),
+                creeper.getSalud(),
+                jugadaRepository.existsByCreeperId(creeper.getId())
         );
     }
 
@@ -216,6 +224,14 @@ public class ExplosionService {
     }
 
     private record ObjetivoSimulacion(Entidad entidad, String identificador) {
+    }
+
+    /** Estado leído de H2 que se reparte entre A2 y A3 según el esquema de cada uno. */
+    public record EstadoExplosion(
+            SolicitudValidacion jugada,
+            Integer saludCreeper,
+            boolean yaDetonado
+    ) {
     }
 
     @Schema(description = "Explosión a validar con las dos reglas, sin ids ni acceso a la base.")

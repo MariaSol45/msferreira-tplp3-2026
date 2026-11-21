@@ -1,28 +1,32 @@
 package py.edu.uc.lp3.msferreira.minecraft.service.companero;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.SolicitudValidacion;
+import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.EstadoExplosion;
 
-/** Cliente hacia A2 (Irina). Configuración: companeros.a2.* en application.properties. */
+/** Cliente hacia A2 (Irina), según su OpenAPI /v3/api-docs. */
 @Component
 public class ClienteA2 extends ClienteCompanero {
 
     public ClienteA2(
             @Value("${companeros.a2.nombre:Irina}") String companero,
-            @Value("${companeros.a2.base-url:http://localhost:8082}") String baseUrl,
-            @Value("${companeros.a2.ruta-validacion:/explosiones/validar}") String rutaValidacion,
+            @Value("${companeros.a2.base-url:http://100.87.95.24:8082}") String baseUrl,
+            @Value("${companeros.a2.ruta-validacion:/api/minecraft/reglas/mecha-corta}") String rutaValidacion,
             @Value("${companeros.timeout-segundos:5}") long timeoutSegundos) {
         super("A2", companero, baseUrl, rutaValidacion, timeoutSegundos);
     }
 
-    /**
-     * Contrato propuesto al grupo: el mismo cuerpo que POST /explosiones/validar.
-     * Cuando Irina publique su OpenAPI, este método se adapta a su esquema de pedido.
-     */
+    /** MechaCortaRequest: saludCreeper, creeper y objetivos con tipo, salud y posicion. */
     @Override
-    protected Object armarCuerpo(SolicitudValidacion jugada) {
-        return jugada;
+    protected Object armarCuerpo(EstadoExplosion estado) {
+        Map<String, Object> cuerpo = new LinkedHashMap<>();
+        cuerpo.put("saludCreeper", estado.saludCreeper());
+        cuerpo.put("creeper", estado.jugada().creeper());
+        cuerpo.put("objetivos", estado.jugada().objetivos());
+        return cuerpo;
     }
 }

@@ -8,4 +8,6 @@ import py.edu.uc.lp3.msferreira.minecraft.domain.Jugada;
 
 public interface JugadaRepository extends JpaRepository<Jugada, Long> {
     List<Jugada> findAllByOrderByIdAsc();
+
+    boolean existsByCreeperId(Long creeperId);
 }
