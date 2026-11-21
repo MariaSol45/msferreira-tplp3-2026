@@ -5,7 +5,7 @@
 - Proyecto: `msferreira-tplp3-2026/minecraft`.
 - Tecnologías: Java 21, Spring Boot 4.1.1, Spring Web MVC, Spring Data JPA y H2.
 - Commit evaluado: [8cd5f741f377c8d22e323d818658807c440e889c](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/8cd5f741f377c8d22e323d818658807c440e889c).
-- Base de código y pruebas de la corrección: [4e4c38cdeab75b5edfa164055d206d972171754c](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/4e4c38cdeab75b5edfa164055d206d972171754c). La actualización documental y de Insomnia posterior no está incluida en ese commit.
+- Cierre de la corrección (código, pruebas, documentación e Insomnia): [d14f1b7633bf71b9a0efda935b18c2c654857580](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/d14f1b7633bf71b9a0efda935b18c2c654857580). El traslado de las excepciones a `service.exception` se hizo después, en la rama de POO-09; su commit queda enlazado en el README.
 - Referencias: [enunciado POO-08](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/ejercicio-poo-08-crud-h2-insomnia-2026-10-28.md), [rúbrica](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/RUBRICA-ejercicios-lp3-2026.md) y [especificación histórica POO-06](ESPECIFICACION-POO06.md).
 
 Para la entrega conjunta, usar el enlace del commit que incluya también el cierre documental cuando se publique.
@@ -184,7 +184,7 @@ RuntimeException
     └── ObjetivoFueraDeRangoException -> 422
 ```
 
-Las clases personalizadas siguen en `domain.exception` y se lanzan desde `ExplosionService`. `@RestControllerAdvice` mantiene un handler por hija y traduce argumentos inválidos, recurso inexistente y JSON ilegible. Los errores de conversión de parámetros de URL que resuelve Spring pueden tener otro cuerpo.
+Las clases personalizadas están en `service.exception` y se lanzan desde `ExplosionService`; el dominio no declara ni lanza excepciones. `@RestControllerAdvice` mantiene un handler por hija y traduce argumentos inválidos, recurso inexistente y JSON ilegible. Los errores de conversión de parámetros de URL que resuelve Spring pueden tener otro cuerpo.
 
 ## Simplificaciones documentadas
 

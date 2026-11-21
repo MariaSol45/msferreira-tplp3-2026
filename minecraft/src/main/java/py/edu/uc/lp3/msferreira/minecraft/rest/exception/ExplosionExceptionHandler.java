@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import py.edu.uc.lp3.msferreira.minecraft.domain.exception.ExplosionNoPreparadaException;
-import py.edu.uc.lp3.msferreira.minecraft.domain.exception.ObjetivoFueraDeRangoException;
+import py.edu.uc.lp3.msferreira.minecraft.service.exception.ExplosionNoPreparadaException;
+import py.edu.uc.lp3.msferreira.minecraft.service.exception.ObjetivoFueraDeRangoException;
 
 @RestControllerAdvice
 public class ExplosionExceptionHandler {

@@ -12,6 +12,8 @@ import py.edu.uc.lp3.msferreira.minecraft.domain.Creeper;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Entidad;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Jugador;
 import py.edu.uc.lp3.msferreira.minecraft.repository.EntidadRepository;
+import py.edu.uc.lp3.msferreira.minecraft.service.exception.ExplosionNoPreparadaException;
+import py.edu.uc.lp3.msferreira.minecraft.service.exception.ObjetivoFueraDeRangoException;
 
 @Service
 public class ExplosionService {
@@ -52,7 +54,7 @@ public class ExplosionService {
         );
 
         if (tiempoTranscurrido < creeper.getTiempoExplosion()) {
-            throw new py.edu.uc.lp3.msferreira.minecraft.domain.exception.ExplosionNoPreparadaException(
+            throw new ExplosionNoPreparadaException(
                     creeper.getTiempoExplosion(), tiempoTranscurrido
             );
         }
@@ -120,7 +122,7 @@ public class ExplosionService {
     private void validarObjetivoDentroDelRadio(Creeper creeper, Entidad objetivo) {
         double distancia = distancia(creeper, objetivo);
         if (distancia > creeper.getRadioExplosion()) {
-            throw new py.edu.uc.lp3.msferreira.minecraft.domain.exception.ObjetivoFueraDeRangoException(
+            throw new ObjetivoFueraDeRangoException(
                     objetivo.getClass().getSimpleName(), distancia, creeper.getRadioExplosion()
             );
         }

@@ -1,4 +1,4 @@
-package py.edu.uc.lp3.msferreira.minecraft.domain.exception;
+package py.edu.uc.lp3.msferreira.minecraft.service.exception;
 
 public class ExplosionNoPreparadaException extends ExplosionException {
     public ExplosionNoPreparadaException(int tiempoExplosion, int tiempoTranscurrido) {

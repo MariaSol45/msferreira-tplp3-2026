@@ -8,7 +8,7 @@ El commit evaluado se conserva como referencia histórica:
 
 <https://github.com/MariaSol45/msferreira-tplp3-2026/commit/8cd5f741f377c8d22e323d818658807c440e889c>
 
-La corrección funcional y las pruebas adversariales están en el [commit base publicado `4e4c38cdeab75b5edfa164055d206d972171754c`](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/4e4c38cdeab75b5edfa164055d206d972171754c). Ese enlace no incluye los cambios posteriores de documentación y colección de este cierre. Para entregar el conjunto completo, enlazar el commit que los incluya una vez publicado.
+La corrección completa (código, pruebas, documentación e Insomnia) está en el commit [`d14f1b7633bf71b9a0efda935b18c2c654857580`](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/d14f1b7633bf71b9a0efda935b18c2c654857580).
 
 Referencias: [enunciado POO-08](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/ejercicio-poo-08-crud-h2-insomnia-2026-10-28.md), [rúbrica de ocho criterios](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/RUBRICA-ejercicios-lp3-2026.md) y [especificación histórica POO-06](ESPECIFICACION-POO06.md). En esta revisión se sigue la indicación específica comunicada para POO-08: las reglas y el lanzamiento de excepciones de negocio quedan en los servicios.
 
@@ -197,7 +197,7 @@ Estas decisiones son deliberadas y están aisladas en `ExplosionService`, por lo
 | 409 | Tiempo de detonación insuficiente. |
 | 422 | Objetivo fuera del radio. |
 
-Las excepciones 409 y 422 conservan la jerarquía `ExplosionException` en `domain.exception` y handlers separados. Sus reglas se evalúan y sus excepciones se lanzan desde `ExplosionService`, no desde `Creeper`.
+Las excepciones 409 y 422 conservan la jerarquía `ExplosionException` en `service.exception` y handlers separados. Sus reglas se evalúan y sus excepciones se lanzan desde `ExplosionService`, no desde `Creeper`.
 
 ## Persistencia
 
