@@ -241,7 +241,16 @@ DEBUG ... CompaneroExceptionHandler : HTTP 409 devuelto: rechazo de A3 (Cecilia)
 
 ### Cómo arrancar los tres servicios
 
-Las tres máquinas tienen que estar conectadas por Tailscale. Cada integrante arranca su servicio en su equipo con su puerto; A1 ya trae las IP de A2 y A3 como valores predeterminados:
+Las tres máquinas tienen que estar conectadas por Tailscale. Cada integrante arranca su servicio en su equipo con su puerto; A1 ya trae las IP de A2 y A3 como valores predeterminados.
+
+Enlaces disponibles de A2 y A3, tomados del mapa del grupo y de la colección de Insomnia:
+
+| Servicio | URL base | OpenAPI |
+|---|---|---|
+| A2 (Irina) | `http://100.87.95.24:8082` | `http://100.87.95.24:8082/v3/api-docs` |
+| A3 (Cecilia) | `http://100.122.114.103:8083` | `http://100.122.114.103:8083/v3/api-docs` |
+
+No hay URL de repositorio GitHub ni hash de commit de A2/A3 en la documentación disponible; por eso no se inventan y esos servicios solo pueden arrancarse en sus propias máquinas con los comandos siguientes.
 
 ```bash
 # A2 (Irina): en su repositorio, en su máquina
@@ -335,6 +344,8 @@ Con esto quedan comprobadas las tres direcciones del round robin: A1 consume a I
 | Mapa A1/A2/A3 (3) | Cumplido: nombres, URLs Tailscale, OpenAPI y reglas en la tabla del mapa. |
 | Consumo de A2 y A3 (3) | Cumplido: clientes configurados por propiedades o variables de entorno y llamadas reales a Irina (200/422) y a Cecilia (200/409/422). |
 | Escenario persistido y atribución de rechazos (3) | Cumplido con los tres servicios reales: 201 con jugada leíble por GET, 409 de A2 y de A3 sin cambios en H2, y 502 cuando una compañera no responde. |
+
+El archivo de especificación para Classroom es [ESPECIFICACION-POO09.md](ESPECIFICACION-POO09.md). El enlace exacto al commit final se completa manualmente después del push.
 
 ## Objetivo
 
@@ -742,6 +753,7 @@ classDiagram
 
 ## Entregables
 
+- [ESPECIFICACION-POO09.md](ESPECIFICACION-POO09.md)
 - [ESPECIFICACION-POO08.md](ESPECIFICACION-POO08.md)
 - [BITACORA.md](BITACORA.md)
 - [insomnia/poo08-minecraft.json](insomnia/poo08-minecraft.json)
