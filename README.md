@@ -28,8 +28,10 @@ Referencias: [enunciado POO-08](https://github.com/alefq/afq-taller-git-2024/blo
 | Rol | Integrante | URL base (Tailscale) | OpenAPI | Regla que aporta |
 |---|---|---|---|---|
 | A1 | María Sol Ferreira (este servicio) | `http://100.87.131.50:8080` (local: `http://localhost:8080`) | `http://100.87.131.50:8080/v3/api-docs` (JSON), `/v3/api-docs.yaml`, Swagger UI en `/swagger-ui.html` | (1) Un Creeper solo explota si `tiempoTranscurrido >= tiempoExplosion`; si no, 409. (2) Todos los objetivos tienen que estar a una distancia euclídea del Creeper menor o igual al radio de explosión; si no, 422 y nadie recibe daño. |
-| A2 | Irina | `http://100.87.95.24:8082` | `http://100.87.95.24:8082/v3/api-docs` | `POST /api/minecraft/reglas/mecha-corta`: un Creeper vivo solo detona si hay un jugador vivo a 3 bloques o menos. 200 acepta; 422 `fuera_de_alcance`; 409 `entidad_muerta`; 400 `dato_invalido`. |
-| A3 | Cecilia | `http://100.122.114.103:8083` | `http://100.122.114.103:8083/v3/api-docs` | `POST /explosiones/validar`: un Creeper muerto no detona (422) y uno que ya detonó no vuelve a detonar (409). |
+| A2 | Irina | `http://100.87.95.24:8082` | `http://100.87.95.24:8082/v3/api-docs` | `POST /api/minecraft/reglas/mecha-corta`: (1) «Mecha corta»: un Creeper vivo solo detona si hay un jugador vivo a 3 bloques o menos. 200 acepta; 422 `fuera_de_alcance`; 409 `entidad_muerta`; 400 `dato_invalido`. (2) «Onda expansiva»: al detonar, las entidades dentro del radio pierden salud según la distancia; Irina la aplica dentro de su propio escenario y no publica un endpoint de validación aparte, por eso A1 consume solo la mecha corta. |
+| A3 | Cecilia | `http://100.122.114.103:8083` | `http://100.122.114.103:8083/v3/api-docs` | `POST /explosiones/validar`: (1) «Creeper vivo»: un Creeper muerto no detona (422 `CreeperMuertoException`). (2) «Detonación única»: un Creeper que ya detonó no vuelve a detonar (409 `CreeperYaDetonadoException`). |
+
+Round robin comprobado el 23/11/2026: el servicio de Irina publica en `GET /api/minecraft/jugadas/companeras` que consulta a Cecilia (`http://100.122.114.103:8083`) y a María Sol (`http://100.87.131.50:8080`), y el escenario de Cecilia (`POST /escenarios/emboscada`) consulta la mecha corta de Irina. Las tres usamos las mismas tres URLs.
 
 Mis dos reglas para el grupo se consumen con [`POST /explosiones/validar`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/rest/controller/ExplosionController.java), que evalúa las reglas con los datos del cuerpo y no lee ni modifica mi H2. Código de las reglas: [`ExplosionService`](minecraft/src/main/java/py/edu/uc/lp3/msferreira/minecraft/service/ExplosionService.java). Ese endpoint sigue respondiendo 200, 400, 409 y 422 y no fue modificado.
 
@@ -52,7 +54,7 @@ No se usa `localhost` para llamar a A2 ni a A3: las URLs por defecto son las IP 
 4. [Validaciones propias (HTTP 400, 409 y 422)](#4-validaciones-propias-http-400-409-y-422)
 5. [Fallo de comunicacion (HTTP 502)](#5-fallo-de-comunicacion-http-502)
 
-Los diagramas muestran A1, A2, A3 y H2 solo cuando intervienen. El camino feliz se verificó el 23/11/2026 con A2 real y A3 local; con los tres servicios reales sigue **pendiente** porque Cecilia no responde. Los estados de verificación se resumen al final de esta sección.
+Los diagramas muestran A1, A2, A3 y H2 solo cuando intervienen. El camino feliz y los dos rechazos se verificaron el 23/11/2026 con los tres servicios reales (A1, Irina y Cecilia en línea por Tailscale). Los estados de verificación se resumen al final de esta sección.
 
 #### 1. Camino feliz (validaciones HTTP 200)
 
@@ -76,7 +78,7 @@ sequenceDiagram
     A1-->>C: 201 + Location /jugadas/{id}
 ```
 
-**Estado:** verificado con los servidores HTTP locales de `JugadaEscenarioIntegrationTests` y, el 23/11/2026, por HTTP con A1 en H2 en memoria, A2 real (200) y A3 local (200): 201, `Location`, jugada leíble por GET y salud 14. **Pendiente con A3 real**: Cecilia no responde, así que no se presenta como probado contra los tres servicios.
+**Estado:** verificado con los servidores HTTP locales de `JugadaEscenarioIntegrationTests` y, el 23/11/2026, por HTTP con A1 en H2 en memoria, A2 real (200) y A3 real (200): 201, `Location: /jugadas/1`, la jugada se lee con `GET /jugadas` (`aceptadaPorA2=Irina`, `aceptadaPorA3=Cecilia`) y el Jugador queda con salud 14.
 
 #### 2. Rechazo de Irina (A2) (HTTP 422)
 
@@ -177,9 +179,9 @@ sequenceDiagram
 
 | Diagrama | Estado |
 |---|---|
-| 1. Camino feliz | **Verificado el 23/11 con A2 real y A3 local**: 201, `Location: /jugadas/2`, GET mostró la jugada y salud 14. **Pendiente con A3 real** (Cecilia no responde). |
+| 1. Camino feliz | **Verificado el 23/11 con A2 y A3 reales**: 201, `Location: /jugadas/1`, GET mostró la jugada y salud 14. |
 | 2. Rechazo de A2 | **Verificado con A2 real**: el 23/11 respondió 422 `fuera_de_alcance` y A1 devolvió 409 con `origen=A2`, `estadoCompanero=422` y `motivoCompanero=fuera_de_alcance`; GET `/jugadas` siguió vacío y las saludes en 20. A3 no se consultó. |
-| 3. Rechazo de A3 | **Verificado con A3 local** el 23/11: 409 `CreeperYaDetonadoException`, A1 respondió 409 con `origen=A3` y no hubo segunda jugada ni daño. **Sin observación del 409 con Cecilia en línea**; su 422 real se observó el 21/11. |
+| 3. Rechazo de A3 | **Verificado con A3 real** el 23/11: con el mismo Creeper, A2 aceptó y Cecilia respondió 409 `CreeperYaDetonadoException`; A1 devolvió 409 con `origen=A3` y no hubo segunda jugada ni daño (salud 14). Su 422 `CreeperMuertoException` real se observó el 21/11. |
 | 4. Reglas propias | **Verificado** en `ExplosionValidacionIntegrationTests` y en la colección POO-08 de Insomnia; `/explosiones/validar` no toca H2. |
 | 5. Fallo de comunicación | **Verificado el 23/11**: caída real de A3 dio 502 con `origen=A3`; A2 apuntado a `localhost:9` dio 502 con `origen=A2`. En ambos casos `GET /jugadas` siguió vacío. 5xx y respuestas inesperadas están en `ClienteCompaneroTests`. |
 
@@ -306,7 +308,23 @@ Las mismas solicitudes están en [`insomnia/poo09-apis-cruzadas.json`](insomnia/
 
 ### Si un compañero no responde
 
-El escenario responde 502 con el `origen` y no guarda nada; tampoco si un 200 no trae `aceptada=true`. Para confirmar los rechazos sin depender de las compañeras, apagar una de ellas o cambiar su IP con las variables de entorno. Las respuestas de [`insomnia/respuestas-ejemplo/`](insomnia/respuestas-ejemplo/) son copias de ejecuciones HTTP reales del 23/11/2026: A2 real y A3 caída/local según cada caso; no son respuestas inventadas. Las automatizadas usan servidores HTTP locales que simulan a A2 y A3.
+El escenario responde 502 con el `origen` y no guarda nada; tampoco si un 200 no trae `aceptada=true`. Para confirmar los rechazos sin depender de las compañeras, apagar una de ellas o cambiar su IP con las variables de entorno. Las respuestas de [`insomnia/respuestas-ejemplo/`](insomnia/respuestas-ejemplo/) son copias de ejecuciones HTTP reales del 23/11/2026, no respuestas inventadas: el feliz y los dos rechazos con A2 y A3 reales, y los 502 con una compañera apagada o apuntada a un puerto cerrado. Las pruebas automatizadas usan servidores HTTP locales que simulan a A2 y A3.
+
+Qué hice cuando A3 no respondía (21 y 23/11): seguí probando con A2 real y un servidor HTTP local en 8083 que respetaba el contrato leído del OpenAPI de Cecilia, guardé esas respuestas y reintenté más tarde. El 23/11, con Cecilia en línea, repetí el feliz y el rechazo de A3 contra su servicio real y reemplacé las respuestas de ejemplo.
+
+### Pruebas de los escenarios de Irina y Cecilia (23/11/2026)
+
+Mi servicio también es consultado por las dos: soy A3 de Irina y A3 de Cecilia. Con A1 en `http://100.87.131.50:8080`, probé sus escenarios desde mi máquina (carpeta 07 de Insomnia):
+
+| Servicio | Prueba | Resultado |
+|---|---|---|
+| Irina `POST /api/minecraft/jugadas/explosion` | Creeper vivo, jugador a 2 bloques, `tiempoTranscurrido` 30 | 201. `GET /api/minecraft/jugadas` muestra la jugada 1 aceptada por Cecilia (200) y por A1 (200, «La explosión cumple el tiempo de detonación…»). |
+| Cecilia `POST /escenarios/emboscada` | Primer intento | 503 `CompaneroNoDisponibleException` atribuido a A2: su servicio llamaba a Irina en `localhost:8082`. Se lo avisé, corrigió la URL y reinició. |
+| Cecilia | Creeper cerca del origen | 422 `CreeperMuertoException` (rechazo propio de Cecilia): una prueba suya en la misma posición había detonado y dejado mi Creeper con vida 0. Volví a crear las entidades en x=100. |
+| Cecilia | Rechazos de Irina (jugador a 5 bloques) y de A1 (tiempo 0) | Rechazados; no se guardó ninguna emboscada. |
+| Cecilia | Feliz (Creeper en x=100, jugador a 2 bloques) | 201. `GET /escenarios/emboscadas` muestra la emboscada 2 (Creeper 16, Jugador 17) aceptada por Irina (mecha corta, 2 bloques) y por A1. |
+
+Con esto quedan comprobadas las tres direcciones del round robin: A1 consume a Irina y a Cecilia, Irina consume a Cecilia y a A1, y Cecilia consume a Irina y a A1.
 
 ### Estado frente a la rúbrica POO-09 (15 puntos)
 
@@ -315,10 +333,8 @@ El escenario responde 502 con el `origen` y no guarda nada; tampoco si un 200 no
 | Corrección de POO-08 (3) | Cumplido: tabla de observaciones cerradas al inicio de este README. |
 | OpenAPI propio (3) | Cumplido: `/v3/api-docs`, `/v3/api-docs.yaml` y Swagger UI cubren CRUD, simulación, validación y errores; respondieron 200. |
 | Mapa A1/A2/A3 (3) | Cumplido: nombres, URLs Tailscale, OpenAPI y reglas en la tabla del mapa. |
-| Consumo de A2 y A3 (3) | Cumplido con evidencia: clientes configurados y llamadas reales a los OpenAPI; A2 respondió 200/422 y A3 200/422 antes de caer. Queda pendiente repetir A3 en línea. |
-| Escenario persistido y atribución de rechazos (3) | Cumplido con A2 real y A3 local: 201 con jugada leíble por GET, 409 de A2 y de A3 sin cambios en H2, 502 por caída. Queda pendiente el feliz con A3 real. |
-| Enlace exacto al commit de la solución | Pendiente: hay cambios sin confirmar en esta rama; el enlace se agregará después del commit de entrega. |
-| Especificación en Classroom | Pendiente: cargar el Markdown aplicado a A1/A2/A3 con el enlace del commit. |
+| Consumo de A2 y A3 (3) | Cumplido: clientes configurados por propiedades o variables de entorno y llamadas reales a Irina (200/422) y a Cecilia (200/409/422). |
+| Escenario persistido y atribución de rechazos (3) | Cumplido con los tres servicios reales: 201 con jugada leíble por GET, 409 de A2 y de A3 sin cambios en H2, y 502 cuando una compañera no responde. |
 
 ## Objetivo
 
@@ -610,8 +626,9 @@ Archivo: `insomnia/poo09-apis-cruzadas.json`. El entorno tiene `base_url_a1`, `b
 4. Rechazo de A2 (Irina): pedido directo a su validación, escenario con `jugador_lejano_id` y GET que muestran que nada cambió.
 5. Rechazo de A3 (Cecilia): lo mismo; el escenario se ejecuta después del feliz para que A1 envíe `yaDetonado=true`.
 6. Mis reglas: el escenario rechazado por mi detonación y mi `/explosiones/validar`.
+7. Escenarios de Irina y Cecilia, que consultan a A1: crear sus entidades, copiar `irina_creeper_id`, `ceci_creeper_id`, `ceci_jugador_id` y `ceci_jugador_lejano_id` al entorno (cambiar `sufijo` si un nombre ya existe), y ejecutar en orden. En Cecilia, los rechazos van antes del feliz porque el feliz detona el Creeper.
 
-Las respuestas reales capturadas están en `insomnia/respuestas-ejemplo/`. Si A3 no está en línea, el feliz y el 409 de A3 se reproducen con un servidor local en 8083; el README indica qué queda pendiente con Cecilia real.
+Las respuestas reales capturadas están en `insomnia/respuestas-ejemplo/`, por si una compañera no está en línea durante la corrección.
 
 ### POO-08
 

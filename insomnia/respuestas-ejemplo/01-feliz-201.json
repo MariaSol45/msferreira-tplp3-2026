@@ -2,31 +2,31 @@
   "pedido": "POST /jugadas/explosion",
   "url": "http://localhost:8080/jugadas/explosion",
   "cuerpoPedido": {
-    "creeperId": 4,
-    "jugadorId": 5,
-    "aldeanoId": 6,
+    "creeperId": 1,
+    "jugadorId": 2,
+    "aldeanoId": 3,
     "tiempoTranscurrido": 3
   },
   "estado": 201,
   "cabeceras": {
-    "Location": "/jugadas/2"
+    "Location": "/jugadas/1"
   },
   "cuerpo": {
     "tipo": "Explosión de Creeper",
-    "creeperId": 4,
-    "jugadorId": 5,
-    "aldeanoId": 6,
+    "creeperId": 1,
+    "jugadorId": 2,
+    "aldeanoId": 3,
     "tiempoTranscurrido": 3,
     "saludFinalJugador": 14,
     "saludFinalAldeano": 14,
     "aceptadaPorA2": "Irina",
     "aceptadaPorA3": "Cecilia",
-    "registradaEn": "2026-11-23T19:18:15.175507828Z",
-    "id": 2
+    "registradaEn": "2026-11-23T20:12:03.294214Z",
+    "id": 1
   },
   "verificacion": [
-    "GET /jugadas/2 respondió 200 con la jugada id 2 y saludFinalJugador 14.",
-    "GET /entidades/5 respondió 200 con salud 14."
+    "GET /jugadas respondió 200 con la jugada id 1 (aceptadaPorA2 Irina, aceptadaPorA3 Cecilia).",
+    "GET /entidades/2 respondió 200 con salud 14."
   ],
-  "origen": "Ejecución real del 23/11/2026. A1 se arrancó con H2 en memoria; A2 es el servicio real de Irina en http://100.87.95.24:8082 y devolvió 200 aceptada=true. A3 se reemplazó por un servidor HTTP local en 8083 porque Cecilia no responde: devolvió 200 aceptada=true con el cuerpo '{\"saludCreeper\":20,\"yaDetonado\":false}'. Queda pendiente repetir con A3 real."
+  "origen": "Ejecución real del 23/11/2026 con los tres servicios reales: A1 con H2 en memoria, A2 de Irina en http://100.87.95.24:8082 (200 aceptada) y A3 de Cecilia en http://100.122.114.103:8083 (200 aceptada)."
 }

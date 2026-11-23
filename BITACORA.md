@@ -250,6 +250,21 @@ Verificación:
 
 Sigue pendiente repetir el camino feliz y el rechazo con A3 real cuando Cecilia vuelva a publicar el servicio. No se ejecutaron `git add`, commit, push, merge ni cambios de rama; no se modificaron reglas de negocio ni la H2 de desarrollo.
 
+### 23 de noviembre de 2026 - prueba con los tres servicios reales y cierre documental
+
+Sesión con Claude Code (Claude Opus 5.5). Prompt resumido: verificar hasta dónde está POO-09 contra el enunciado, actualizar el Markdown de entrega y el README, y explicar cómo levantar y probar los servicios de Irina y Cecilia.
+
+- `./mvnw test`: 132/132 sin fallos, errores ni omitidas.
+- Irina y Cecilia estaban en línea por Tailscale. Se leyeron sus OpenAPI y `GET /api/minecraft/jugadas/companeras` de Irina, que confirma el mismo round robin con las mismas tres URLs.
+- A1 se arrancó con H2 en memoria en el puerto 18080, sin tocar la base de desarrollo, y se probó contra los servicios reales: feliz 201 (`Location: /jugadas/1`, salud 14); rechazo de A3 409 `CreeperYaDetonadoException` con `origen=A3` y sin segunda jugada; rechazo de A2 422 `fuera_de_alcance` traducido a 409 con `origen=A2` y salud 20.
+- Se reemplazaron `01-feliz-201.json` y `03-rechazo-a3-409.json` por estas respuestas reales.
+- README: se citan las dos reglas de Irina y de Cecilia, se documenta el round robin comprobado, se quitan los pendientes con A3 real y las frases de estado sobre el commit y Classroom, y se explica qué se hizo cuando A3 no respondía.
+- Se actualizó el Markdown de entrega de Classroom.
+
+- Pruebas cruzadas desde la máquina de A1: escenario de Irina (201, jugada 1 aceptada por Cecilia y A1) y escenario de Cecilia (503 inicial por su URL `localhost:8082`, corregido por ella; 422 por un Creeper dañado por otra prueba cercana; feliz 201, emboscada 2 aceptada por Irina y A1). Se agregó la carpeta 07 a la colección de Insomnia con esas pruebas y se documentó en el README.
+
+No se modificó código Java ni reglas de negocio.
+
 ## Resumen de prompts
 
 Los prompts de las sesiones POO-08 solicitaron, en palabras resumidas:

@@ -10,7 +10,7 @@
       "modified": 1795370400000,
       "created": 1795370400000,
       "name": "POO-09 Minecraft - APIs cruzadas (A1 María Sol)",
-      "description": "A1 = María Sol (este servicio). A2 = Irina, A3 = Cecilia. Orden de arranque: primero A2 y A3, después A1 (ver README). Ejecutar las carpetas en orden y copiar los ids de los POST de la carpeta 02 al entorno: creeper_id, jugador_id, aldeano_id y jugador_lejano_id (este último solo para el rechazo de A2). Las respuestas reales capturadas están en insomnia/respuestas-ejemplo/.",
+      "description": "A1 = María Sol (este servicio). A2 = Irina, A3 = Cecilia. Orden de arranque: primero A2 y A3, después A1 (ver README). Ejecutar las carpetas en orden y copiar los ids de los POST de la carpeta 02 al entorno: creeper_id, jugador_id, aldeano_id y jugador_lejano_id (este último solo para el rechazo de A2). Las respuestas reales capturadas están en insomnia/respuestas-ejemplo/. La carpeta 07 prueba los escenarios de Irina y Cecilia, que consultan a A1: copiar al entorno irina_creeper_id, ceci_creeper_id, ceci_jugador_id y ceci_jugador_lejano_id, y cambiar sufijo si un nombre ya existe.",
       "scope": "collection",
       "_type": "workspace"
     },
@@ -27,7 +27,12 @@
         "creeper_id": "1",
         "jugador_id": "2",
         "aldeano_id": "3",
-        "jugador_lejano_id": "4"
+        "jugador_lejano_id": "4",
+        "sufijo": "1",
+        "irina_creeper_id": "1",
+        "ceci_creeper_id": "1",
+        "ceci_jugador_id": "2",
+        "ceci_jugador_lejano_id": "3"
       },
       "dataPropertyOrder": null,
       "color": null,
@@ -425,7 +430,7 @@
       "created": 1795370400000,
       "url": "{{ _.base_url_a3 }}/explosiones/validar",
       "name": "15 - POST A3 directo: jugada que rompe su regla",
-      "description": "Regla real de Cecilia leída de su OpenAPI el 21/11/2026: con saludCreeper 0 responde 422 CreeperMuertoException y con yaDetonado true responde 409 CreeperYaDetonadoException. El 23/11/2026 Cecilia no responde, así que la evidencia local del 409 está en insomnia/respuestas-ejemplo/03-rechazo-a3-409.json; el 422 real se observó el 21/11/2026.",
+      "description": "Regla real de Cecilia leída de su OpenAPI: con saludCreeper 0 responde 422 CreeperMuertoException y con yaDetonado true responde 409 CreeperYaDetonadoException. Ambos rechazos se observaron con Cecilia en línea (422 el 21/11/2026 y 409 el 23/11/2026).",
       "method": "POST",
       "body": {
         "mimeType": "application/json",
@@ -574,6 +579,319 @@
       ],
       "authentication": {},
       "metaSortKey": 210,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "grp_07",
+      "parentId": "wrk_poo09_minecraft",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "name": "07 - Escenarios de Irina y Cecilia (consumen a A1)",
+      "description": "Prueba los escenarios de mis compañeras, que consultan mi /explosiones/validar. Requiere A1 en marcha en base_url_a1. Ejecutar en orden: en Cecilia, los rechazos van antes del feliz porque el feliz detona el Creeper. Las entidades de Cecilia se crean en x=100 para que otras pruebas cerca del origen no las dañen.",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": 700,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_22",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a2 }}/api/minecraft/jugadas/companeras",
+      "name": "22 - GET Irina: a quién consulta",
+      "description": "Irina consulta a Cecilia (A2 de ella) y a María Sol (A3 de ella), con las mismas URLs del mapa.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 220,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_23",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a2 }}/api/minecraft/entidades",
+      "name": "23 - POST Irina: crear Creeper",
+      "description": "Copiar el id devuelto a irina_creeper_id. tiempoExplosion 30, igual al valor por defecto de su OpenAPI.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"CREEPER\",\n  \"salud\": 20,\n  \"posicionX\": 0,\n  \"posicionY\": 64,\n  \"posicionZ\": 0,\n  \"velocidad\": 1,\n  \"rangoDeteccion\": 5,\n  \"danoAtaque\": 6,\n  \"tiempoExplosion\": 30\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 230,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_24",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a2 }}/api/minecraft/entidades",
+      "name": "24 - POST Irina: crear Jugador a 2 bloques",
+      "description": "Irina no admite nombres repetidos (400 nombre_repetido): cambiar sufijo en el entorno si hace falta.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"JUGADOR\",\n  \"nombre\": \"Steve-Sol-{{ _.sufijo }}\",\n  \"nivelEXP\": 0,\n  \"salud\": 20,\n  \"posicionX\": 2,\n  \"posicionY\": 64,\n  \"posicionZ\": 0,\n  \"velocidad\": 1\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 240,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_25",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a2 }}/api/minecraft/jugadas/explosion",
+      "name": "25 - POST Irina: escenario (Cecilia y A1 aceptan)",
+      "description": "Esperado: 201. Cecilia valida que el Creeper esté vivo y sin detonar; A1 valida tiempo y radio. Repetirlo con el mismo Creeper provoca el rechazo de Cecilia.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.irina_creeper_id }},\n  \"tiempoTranscurrido\": 30\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 250,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_26",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a2 }}/api/minecraft/jugadas/explosion",
+      "name": "26 - POST Irina: escenario rechazado por A1 (tiempo)",
+      "description": "Usar un Creeper nuevo (repetir 23). Con tiempoTranscurrido menor que tiempoExplosion, mi regla responde 409 y la jugada de Irina no se guarda.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.irina_creeper_id }},\n  \"tiempoTranscurrido\": 1\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 260,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_27",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a2 }}/api/minecraft/jugadas",
+      "name": "27 - GET Irina: jugadas guardadas",
+      "description": "Muestra solo las jugadas aceptadas por Cecilia y por A1.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 270,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_28",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a3 }}/entidades",
+      "name": "28 - POST Cecilia: crear Creeper (x=100)",
+      "description": "Copiar el id a ceci_creeper_id.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"Creeper\",\n  \"nombre\": \"Creeper Sol {{ _.sufijo }}\",\n  \"vida\": 20,\n  \"vidaMaxima\": 20,\n  \"x\": 100,\n  \"y\": 64,\n  \"z\": 0,\n  \"detonado\": false\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 280,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_29",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a3 }}/entidades",
+      "name": "29 - POST Cecilia: crear Jugador cerca (2 bloques)",
+      "description": "Copiar el id a ceci_jugador_id.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"Jugador\",\n  \"nombre\": \"Steve Sol cerca {{ _.sufijo }}\",\n  \"vida\": 20,\n  \"vidaMaxima\": 20,\n  \"x\": 102,\n  \"y\": 64,\n  \"z\": 0\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 290,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_30",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a3 }}/entidades",
+      "name": "30 - POST Cecilia: crear Jugador lejos (5 bloques)",
+      "description": "Copiar el id a ceci_jugador_lejano_id.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"Jugador\",\n  \"nombre\": \"Alex Sol lejos {{ _.sufijo }}\",\n  \"vida\": 20,\n  \"vidaMaxima\": 20,\n  \"x\": 105,\n  \"y\": 64,\n  \"z\": 0\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 300,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_31",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a3 }}/escenarios/emboscada",
+      "name": "31 - POST Cecilia: emboscada rechazada por Irina",
+      "description": "Jugador a 5 bloques: la mecha corta de Irina rechaza (422) y Cecilia no guarda la emboscada.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.ceci_creeper_id }},\n  \"jugadorId\": {{ _.ceci_jugador_lejano_id }},\n  \"tiempoTranscurrido\": 3\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 310,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_32",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a3 }}/escenarios/emboscada",
+      "name": "32 - POST Cecilia: emboscada rechazada por A1 (tiempo)",
+      "description": "Con tiempoTranscurrido 0 mi regla de detonación rechaza y Cecilia no guarda la emboscada.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.ceci_creeper_id }},\n  \"jugadorId\": {{ _.ceci_jugador_id }},\n  \"tiempoTranscurrido\": 0\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 320,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_33",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a3 }}/escenarios/emboscada",
+      "name": "33 - POST Cecilia: emboscada feliz",
+      "description": "Esperado: 201. Irina y A1 aceptan. Repetirlo con el mismo Creeper muestra el rechazo propio de Cecilia (409 CreeperYaDetonadoException).",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"creeperId\": {{ _.ceci_creeper_id }},\n  \"jugadorId\": {{ _.ceci_jugador_id }},\n  \"tiempoTranscurrido\": 3\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 330,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
+      "_id": "req_34",
+      "parentId": "grp_07",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a3 }}/escenarios/emboscadas",
+      "name": "34 - GET Cecilia: emboscadas guardadas",
+      "description": "Muestra solo las emboscadas aceptadas por Irina y por A1.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": 340,
       "isPrivate": false,
       "_type": "request"
     }

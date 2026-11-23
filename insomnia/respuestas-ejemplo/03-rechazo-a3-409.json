@@ -14,7 +14,7 @@
     "origen": "A3",
     "companero": "Cecilia",
     "estadoCompanero": 409,
-    "respuestaCompanero": "{\"status\": 409, \"tipo\": \"CreeperYaDetonadoException\", \"mensaje\": \"El creeper ya detonó anteriormente.\"}",
+    "respuestaCompanero": "{\"timestamp\":\"2026-11-23T17:12:16.443685835\",\"status\":409,\"error\":\"Conflict\",\"tipo\":\"CreeperYaDetonadoException\",\"mensaje\":\"Creeper ya detonó y no puede volver a explotar.\"}",
     "motivoCompanero": "CreeperYaDetonadoException",
     "mensaje": "La jugada fue rechazada por A3 (Cecilia). Motivo: CreeperYaDetonadoException. La jugada no se guardó.",
     "estado": 409
@@ -24,9 +24,8 @@
     "yaDetonado": true
   },
   "verificacion": [
-    "GET /jugadas devolvió solo la jugada id 1 (saludFinalJugador 14), sin una segunda fila.",
-    "GET /entidades/2 devolvió salud 14, igual que antes del rechazo.",
-    "GET /entidades/3 devolvió salud 14, igual que antes del rechazo."
+    "GET /jugadas siguió con una sola jugada (id 1), sin una segunda fila.",
+    "GET /entidades/2 devolvió salud 14, igual que antes del rechazo."
   ],
-  "origen": "Ejecución real del 23/11/2026 con A2 real (aceptó 200) y A3 reemplazado por un servidor HTTP local en 8083 porque Cecilia no responde. El rechazo 409 con CreeperYaDetonadoException replica el esquema publicado en el OpenAPI real de A3; queda pendiente observarlo con Cecilia en línea."
+  "origen": "Ejecución real del 23/11/2026 con los tres servicios reales: A2 de Irina aceptó con 200 y A3 de Cecilia (http://100.122.114.103:8083) rechazó con 409 CreeperYaDetonadoException."
 }
