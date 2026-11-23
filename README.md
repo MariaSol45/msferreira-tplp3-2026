@@ -6,11 +6,11 @@ Autora: María Sol Ferreira (A1 de esta entrega).
 
 ## Situación de POO-08
 
-POO-08 tuvo observaciones (19/24, [commit corregido `8cd5f741f377c8d22e323d818658807c440e889c`](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/8cd5f741f377c8d22e323d818658807c440e889c)). Todas quedaron cerradas:
+POO-08 tuvo observaciones (19/24 en el [commit evaluado `8cd5f741f377c8d22e323d818658807c440e889c`](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/8cd5f741f377c8d22e323d818658807c440e889c)). La tabla registra las correcciones:
 
 | Criterio | Observación | Cómo se cerró |
 |---|---|---|
-| 1. Entrega y arranque (2,5) | El enlace al commit no era visible y usaba el hash abreviado. | Esta entrega usa el enlace completo con el hash entero, copiado de la pestaña Commits. |
+| 1. Entrega y arranque (2,5) | El enlace al commit no era visible y usaba el hash abreviado. | El commit evaluado y los commits de corrección se identifican mediante enlaces con hashes completos. |
 | 2. Organización en paquetes (2) | El dominio lanzaba `IllegalArgumentException`, `ExplosionNoPreparadaException` y `ObjetivoFueraDeRangoException`. | Las entidades quedaron solo con estado: sin validaciones, sin `validarEstado()`, sin callbacks `@PrePersist/@PreUpdate` y sin `throw`. `EntidadService` y `ExplosionService` validan y lanzan. Las excepciones de las reglas se movieron de `domain.exception` a `service.exception`. Como mejora, `EntidadRepository` declara `findBySaludGreaterThan`. |
 | 3. Ocultamiento e invariantes (0) | Un POST de Jugador con salud 0 y otro con salud 5000 respondían 201; `setSalud` público permitía cambiar la salud desde afuera. | `EntidadService` exige salud inicial entre 1 y 20 (máximo vanilla) para Jugador, Creeper y Aldeano: los dos POST responden 400 y la colección no crece (pruebas en `EntidadCrudIntegrationTests` y en la colección POO-08). Se eliminaron los setters públicos; el daño pasa por `EntidadService.aplicarDano`. |
 | 4. Herencia (mejora) | `GET /ui` armaba instancias nuevas. | `GET /ui?id=...` lee la entidad persistida que implementa `UICapable`. |
@@ -46,7 +46,7 @@ No se usa `localhost` para llamar a A2 ni a A3: las URLs por defecto son las IP 
 
 `POST /jugadas/explosion` con `{"creeperId", "jugadorId", "aldeanoId", "tiempoTranscurrido"}`: un Creeper explota sobre un Jugador y un Aldeano guardados en mi H2, y la jugada se guarda solo si A2 y A3 la aceptan.
 
-Índice de los cinco diagramas exigidos por la rúbrica:
+Diagramas de secuencia del escenario:
 
 1. [Camino feliz (validaciones HTTP 200)](#1-camino-feliz-validaciones-http-200)
 2. [Rechazo de Irina (A2) (HTTP 422)](#2-rechazo-de-irina-a2-http-422)
@@ -73,7 +73,7 @@ sequenceDiagram
     A2-->>A1: 200 aceptada=true
     A1->>A3: POST /explosiones/validar (saludCreeper, yaDetonado)
     A3-->>A1: 200 aceptada=true
-    A1->>H2: aplicar daño y guardar Jugada (una transacción)
+    A1->>H2: bloquear el Creeper, comprobar que no hay jugada, aplicar daño y guardar (una transacción)
     Note over H2: INSERT en JUGADA y UPDATE de Jugador/Aldeano
     A1-->>C: 201 + Location /jugadas/{id}
 ```
@@ -140,7 +140,7 @@ sequenceDiagram
     else algún objetivo fuera del radio
         A1-->>C: 422 ErrorExplosion (Objetivo fuera del radio)
     else todo correcto
-        A1-->>C: 200 valida=true
+        A1-->>C: 200 aceptada=true
     end
     Note over C,A1: A2, A3 y H2 no intervienen: este endpoint no lee ni modifica la base
 ```
@@ -189,16 +189,17 @@ Orden y por qué:
 
 1. **Mis reglas primero, localmente.** Si la jugada ya rompe mi detonación o mi radio, no tiene sentido consultar a nadie.
 2. **A2 y después A3, en serie.** Si A2 rechaza, A3 no se consulta: el rechazo tiene un único origen y no se hace una llamada inútil.
-3. **Escritura al final, en una transacción.** Las llamadas HTTP quedan fuera de la transacción; cuando A2 o A3 rechazan todavía no se escribió nada. Aplicar el daño y guardar la `Jugada` van juntos: si falla una, no queda ninguna.
+3. **Escritura al final, en una transacción.** Las llamadas HTTP quedan fuera de la transacción. Tras ambas aprobaciones se bloquea la fila del Creeper en H2 y se comprueba de nuevo si ya existe una jugada. Si otra solicitud se adelantó, A1 devuelve 409 con `ErrorExplosion` antes de aplicar daño. El daño y la jugada se confirman juntos o se revierten juntos.
 
 Respuestas:
 
 | Caso | Código | Cuerpo |
 |---|---:|---|
-| A2 y A3 aceptan | 201 | La `Jugada` guardada, con `aceptadaPorA2`, `aceptadaPorA3` y las saludes finales; `Location: /jugadas/{id}`. |
+| A2 y A3 aceptan y se confirma la escritura | 201 | La `Jugada` guardada, con `aceptadaPorA2`, `aceptadaPorA3` y las saludes finales; `Location: /jugadas/{id}`. |
 | A2 o A3 rechaza (4xx) | 409 | `ErrorCompanero` con `origen` (`A2` o `A3`), `companero`, `estadoCompanero`, `motivoCompanero` (`codigo` de A2 o `tipo` de A3) y `respuestaCompanero` (el cuerpo original, sin modificar). |
 | A2 o A3 no responde, se agota el tiempo, devuelve 5xx o un 200 sin `aceptada=true` | 502 | `ErrorCompanero` con `origen` y el motivo. |
 | Mi regla de detonación | 409 | `ErrorExplosion` "Explosión no preparada" (sin `origen`: es mía). |
+| A1 detecta una jugada existente al escribir | 409 | `ErrorExplosion` "Creeper ya registrado", sin `origen` remoto ni daño adicional. |
 | Mi regla de radio | 422 | `ErrorExplosion` "Objetivo fuera del radio de explosión". |
 | Id inexistente / dato inválido | 404 / 400 | No se consulta a A2 ni a A3. |
 
@@ -250,7 +251,7 @@ Enlaces disponibles de A2 y A3, tomados del mapa del grupo y de la colección de
 | A2 (Irina) | `http://100.87.95.24:8082` | `http://100.87.95.24:8082/v3/api-docs` |
 | A3 (Cecilia) | `http://100.122.114.103:8083` | `http://100.122.114.103:8083/v3/api-docs` |
 
-No hay URL de repositorio GitHub ni hash de commit de A2/A3 en la documentación disponible; por eso no se inventan y esos servicios solo pueden arrancarse en sus propias máquinas con los comandos siguientes.
+Los comandos de A2 y A3 se ejecutan desde sus respectivos proyectos. Queda pendiente documentar sus repositorios y hashes exactos para reproducir desde un checkout las versiones usadas el 23/11.
 
 ```bash
 # A2 (Irina): en su repositorio, en su máquina
@@ -307,9 +308,11 @@ curl -s -X POST "$A1/entidades" -H 'Content-Type: application/json' \
 curl -s -X POST "$A1/entidades" -H 'Content-Type: application/json' \
   -d '{"tipo":"aldeano","salud":20,"posicionX":4,"posicionY":0,"posicionZ":0,"velocidad":1,"domesticable":true,"profesion":"Granjero"}' | jq .
 
-# 4. Escenario cruzado: 201 solo si A2 y A3 aceptan
+# 4. Copiar los IDs de los tres POST anteriores
+read -r -p 'IDs de Creeper, Jugador y Aldeano (separados por espacios): ' creeper_id jugador_id aldeano_id
 curl -i -X POST "$A1/jugadas/explosion" -H 'Content-Type: application/json' \
-  -d '{"creeperId":1,"jugadorId":2,"aldeanoId":3,"tiempoTranscurrido":3}'
+  -d "$(jq -n --argjson creeper "$creeper_id" --argjson jugador "$jugador_id" --argjson aldeano "$aldeano_id" \
+    '{creeperId:$creeper,jugadorId:$jugador,aldeanoId:$aldeano,tiempoTranscurrido:3}')"
 curl -s "$A1/jugadas" | jq .
 ```
 
@@ -341,11 +344,11 @@ Con esto quedan comprobadas las tres direcciones del round robin: A1 consume a I
 |---|---|
 | Corrección de POO-08 (3) | Cumplido: tabla de observaciones cerradas al inicio de este README. |
 | OpenAPI propio (3) | Cumplido: `/v3/api-docs`, `/v3/api-docs.yaml` y Swagger UI cubren CRUD, simulación, validación y errores; respondieron 200. |
-| Mapa A1/A2/A3 (3) | Cumplido: nombres, URLs Tailscale, OpenAPI y reglas en la tabla del mapa. |
+| Mapa A1/A2/A3 (3) | Nombres, URLs Tailscale, OpenAPI y reglas documentados. Repositorios y commits de A2/A3 pendientes. |
 | Consumo de A2 y A3 (3) | Cumplido: clientes configurados por propiedades o variables de entorno y llamadas reales a Irina (200/422) y a Cecilia (200/409/422). |
 | Escenario persistido y atribución de rechazos (3) | Cumplido con los tres servicios reales: 201 con jugada leíble por GET, 409 de A2 y de A3 sin cambios en H2, y 502 cuando una compañera no responde. |
 
-El archivo de especificación para Classroom es [ESPECIFICACION-POO09.md](ESPECIFICACION-POO09.md). El enlace exacto al commit final se completa manualmente después del push.
+La entrega en Classroom incluye [ESPECIFICACION-POO09.md](ESPECIFICACION-POO09.md) y la URL de GitHub del commit de entrega con el hash completo.
 
 ## Objetivo
 
@@ -539,7 +542,7 @@ Estas decisiones son deliberadas y están aisladas en `ExplosionService`, por lo
 | 204 | Eliminación válida. |
 | 400 | JSON, ID, tipo, estado o invariante inválida. |
 | 404 | ID positivo inexistente. |
-| 409 | Tiempo de detonación insuficiente, o rechazo de A2/A3 en el escenario (campo `origen`). |
+| 409 | Tiempo de detonación insuficiente, jugada ya registrada detectada por A1 al escribir, o rechazo de A2/A3 en el escenario (campo `origen`). |
 | 422 | Objetivo fuera del radio. |
 | 502 | A2 o A3 no respondió en el escenario (campo `origen`). |
 
@@ -601,11 +604,13 @@ cd minecraft
 
 Resultado de POO-09 (21/11/2026, integración adaptada a los OpenAPI reales): **132 pruebas, 0 fallos, 0 errores, 0 omitidas** en orden normal y en orden aleatorio con la semilla indicada. En el cierre de POO-08 (`4e4c38c`) eran 96.
 
+Resultado tras corregir la concurrencia y agregar la prueba de rollback de la jugada: **134 pruebas, 0 fallos, 0 errores, 0 omitidas** en orden normal, con H2 en memoria y las APIs de las compañeras simuladas.
+
 Pruebas nuevas y actualizadas de POO-09:
 
 - `ExplosionValidacionIntegrationTests`: `/explosiones/validar` acepta, rechaza con 409 y 422, responde 400 sin objetivos y no toca H2; contrato sin cambios.
 - `ClienteCompaneroTests` (10): contra un servidor HTTP real (el `HttpServer` del JDK), el cuerpo exacto de `MechaCortaRequest` y de `ValidacionExplosionRequest`, los rechazos 400/409/422 de A2 con su `codigo`, el `tipo` de A3, 5xx, conexión rechazada y respuestas 200 inesperadas (sin `aceptada` o con `aceptada=false`).
-- `JugadaEscenarioIntegrationTests` (12): con dos servidores locales como A2 y A3, el camino feliz guarda y se lee con GET; `GET /jugadas/companeros` muestra las rutas configuradas; rechazos de A2 (`fuera_de_alcance`, `entidad_muerta`, `dato_invalido`) y de A3 (`CreeperMuertoException`, `CreeperYaDetonadoException`) no guardan nada; un Creeper con `Jugada` previa se envía como `yaDetonado=true`; 5xx y respuestas inesperadas dan 502 con `origen`; mis reglas rechazan antes de consultar a nadie.
+- `JugadaEscenarioIntegrationTests` (14) usa dos servidores HTTP locales como A2 y A3. Cubre el feliz, la lectura por GET, las rutas configuradas, los rechazos atribuidos, el indicador `yaDetonado`, los 502 y la prevalidación propia. Dos solicitudes simultáneas, ambas aprobadas con `yaDetonado=false`, producen un 201 y un 409, una sola jugada y una sola aplicación de daño. Otra prueba comprueba por JDBC que la fila y ambas saludes modificadas existen en la transacción, inyecta un fallo y verifica por GET que desaparece la jugada y se restauran ambas saludes.
 
 Las pruebas usan siempre `127.0.0.1` con servidores efímeros o `localhost:9`; no necesitan que A2 ni A3 estén encendidas. `src/test/resources/application.properties` pisa las URLs de Tailscale con destinos locales.
 
@@ -634,7 +639,7 @@ Archivo: `insomnia/poo09-apis-cruzadas.json`. El entorno tiene `base_url_a1`, `b
 1. OpenAPI de A1, A2 y A3, y a quién consulta A1.
 2. Preparación en A1: crear Creeper, Jugador, Aldeano y Jugador lejano (4.5 bloques) y copiar los ids al entorno. El lejano se usa solo en el rechazo de A2.
 3. Escenario feliz y GET de comprobación.
-4. Rechazo de A2 (Irina): pedido directo a su validación, escenario con `jugador_lejano_id` y GET que muestran que nada cambió.
+4. Rechazo de A2 (Irina): pedido directo a su validación y escenario con `jugador_lejano_id`. Comparar los GET con el estado inmediatamente anterior al rechazo. Si se ejecutó el feliz, su jugada debe seguir en la lista y el jugador lejano debe conservar su salud. El ejemplo guardado de A2 se obtuvo con la lista inicialmente vacía.
 5. Rechazo de A3 (Cecilia): lo mismo; el escenario se ejecuta después del feliz para que A1 envíe `yaDetonado=true`.
 6. Mis reglas: el escenario rechazado por mi detonación y mi `/explosiones/validar`.
 7. Escenarios de Irina y Cecilia, que consultan a A1: crear sus entidades, copiar `irina_creeper_id`, `ceci_creeper_id`, `ceci_jugador_id` y `ceci_jugador_lejano_id` al entorno (cambiar `sufijo` si un nombre ya existe), y ejecutar en orden. En Cecilia, los rechazos van antes del feliz porque el feliz detona el Creeper.

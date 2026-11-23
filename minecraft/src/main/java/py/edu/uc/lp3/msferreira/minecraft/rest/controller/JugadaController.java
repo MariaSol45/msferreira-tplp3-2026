@@ -49,7 +49,7 @@ public class JugadaController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorExplosion.class)))
     @ApiResponse(responseCode = "404", description = "No existe alguno de los ids.",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorExplosion.class)))
-    @ApiResponse(responseCode = "409", description = "Rechazo: de A2 o A3 (campo origen) o de mi regla de detonación.",
+    @ApiResponse(responseCode = "409", description = "Rechazo de A2 o A3 (campo origen), tiempo insuficiente o jugada ya registrada.",
             content = @Content(mediaType = "application/json", schema = @Schema(oneOf = {ErrorCompanero.class,
                     ErrorExplosion.class})))
     @ApiResponse(responseCode = "422", description = "Mi regla de radio: algún objetivo fuera del radio.",

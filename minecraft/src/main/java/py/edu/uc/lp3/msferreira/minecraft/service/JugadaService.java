@@ -11,6 +11,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import py.edu.uc.lp3.msferreira.minecraft.domain.Jugada;
+import py.edu.uc.lp3.msferreira.minecraft.repository.EntidadRepository;
 import py.edu.uc.lp3.msferreira.minecraft.repository.JugadaRepository;
 import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.ResultadoExplosion;
 import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.EstadoExplosion;
@@ -18,6 +19,7 @@ import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.SolicitudExpl
 import py.edu.uc.lp3.msferreira.minecraft.service.companero.ClienteA2;
 import py.edu.uc.lp3.msferreira.minecraft.service.companero.ClienteA3;
 import py.edu.uc.lp3.msferreira.minecraft.service.exception.CompaneroException;
+import py.edu.uc.lp3.msferreira.minecraft.service.exception.CreeperYaRegistradoException;
 import py.edu.uc.lp3.msferreira.minecraft.service.exception.ExplosionException;
 
 /**
@@ -36,15 +38,18 @@ public class JugadaService {
 
     private final ExplosionService explosionService;
     private final JugadaRepository jugadaRepository;
+    private final EntidadRepository entidadRepository;
     private final ClienteA2 clienteA2;
     private final ClienteA3 clienteA3;
     private final TransactionTemplate transaccion;
 
     public JugadaService(ExplosionService explosionService, JugadaRepository jugadaRepository,
+                         EntidadRepository entidadRepository,
                          ClienteA2 clienteA2, ClienteA3 clienteA3,
                          PlatformTransactionManager transactionManager) {
         this.explosionService = explosionService;
         this.jugadaRepository = jugadaRepository;
+        this.entidadRepository = entidadRepository;
         this.clienteA2 = clienteA2;
         this.clienteA3 = clienteA3;
         this.transaccion = new TransactionTemplate(transactionManager);
@@ -79,6 +84,14 @@ public class JugadaService {
         REGISTRO.debug("Decisión: persistir; A2={} y A3={} aceptaron", clienteA2.getCompanero(),
                 clienteA3.getCompanero());
         Jugada guardada = transaccion.execute(estado -> {
+            Long creeperId = solicitud.creeperId();
+            entidadRepository.bloquearFilaPorId(creeperId)
+                    .orElseThrow(() -> new NoSuchElementException("No existe una entidad con id " + creeperId + "."));
+            // La aprobación remota puede haber usado un estado anterior al guardado de otra solicitud.
+            if (jugadaRepository.existsByCreeperId(creeperId)) {
+                REGISTRO.debug("Decisión: no persistir; ya hay una jugada para creeperId={}", creeperId);
+                throw new CreeperYaRegistradoException(creeperId);
+            }
             ResultadoExplosion resultado = explosionService.simular(solicitud);
             return jugadaRepository.save(new Jugada(
                     TIPO_EXPLOSION,

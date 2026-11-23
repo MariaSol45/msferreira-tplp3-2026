@@ -5,10 +5,8 @@
 - Proyecto: `msferreira-tplp3-2026/minecraft`.
 - Tecnologías: Java 21, Spring Boot 4.1.1, Spring Web MVC, Spring Data JPA y H2.
 - Commit evaluado: [8cd5f741f377c8d22e323d818658807c440e889c](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/8cd5f741f377c8d22e323d818658807c440e889c).
-- Cierre de la corrección (código, pruebas, documentación e Insomnia): [d14f1b7633bf71b9a0efda935b18c2c654857580](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/d14f1b7633bf71b9a0efda935b18c2c654857580). El traslado de las excepciones a `service.exception` se hizo después, en la rama de POO-09; su commit queda enlazado en el README.
+- Cierre de la corrección (código, pruebas, documentación e Insomnia): [d14f1b7633bf71b9a0efda935b18c2c654857580](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/d14f1b7633bf71b9a0efda935b18c2c654857580). El traslado de las excepciones a `service.exception` quedó registrado en [896b9a75ded135ee88ee0a69e2605bff75ff3418](https://github.com/MariaSol45/msferreira-tplp3-2026/commit/896b9a75ded135ee88ee0a69e2605bff75ff3418).
 - Referencias: [enunciado POO-08](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/ejercicio-poo-08-crud-h2-insomnia-2026-10-28.md), [rúbrica](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/RUBRICA-ejercicios-lp3-2026.md) y [especificación histórica POO-06](ESPECIFICACION-POO06.md).
-
-Para la entrega conjunta, usar el enlace del commit que incluya también el cierre documental cuando se publique.
 
 ## Decisión ante la contradicción
 

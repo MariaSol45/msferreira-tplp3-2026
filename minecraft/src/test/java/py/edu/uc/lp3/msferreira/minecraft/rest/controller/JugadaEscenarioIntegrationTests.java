@@ -2,7 +2,10 @@ package py.edu.uc.lp3.msferreira.minecraft.rest.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -12,6 +15,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Instant;
+import java.util.List;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import jakarta.persistence.EntityManager;
+import jakarta.servlet.ServletException;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,8 +30,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import py.edu.uc.lp3.msferreira.minecraft.domain.Aldeano;
@@ -30,6 +42,7 @@ import py.edu.uc.lp3.msferreira.minecraft.domain.Jugada;
 import py.edu.uc.lp3.msferreira.minecraft.domain.Jugador;
 import py.edu.uc.lp3.msferreira.minecraft.repository.EntidadRepository;
 import py.edu.uc.lp3.msferreira.minecraft.repository.JugadaRepository;
+import py.edu.uc.lp3.msferreira.minecraft.service.companero.ClienteA3;
 import py.edu.uc.lp3.msferreira.minecraft.service.companero.CompaneroFalso;
 
 @SpringBootTest
@@ -60,8 +73,17 @@ class JugadaEscenarioIntegrationTests {
     @Autowired
     private EntidadRepository entidadRepository;
 
-    @Autowired
+    @MockitoSpyBean
     private JugadaRepository jugadaRepository;
+
+    @MockitoSpyBean
+    private ClienteA3 clienteA3;
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private Creeper creeper;
     private Jugador jugador;
@@ -108,6 +130,56 @@ class JugadaEscenarioIntegrationTests {
         String pedidoA3 = CECILIA.pedidos().getFirst();
         assertTrue(pedidoA3.contains("\"saludCreeper\":20"), pedidoA3);
         assertTrue(pedidoA3.contains("\"yaDetonado\":false"), pedidoA3);
+    }
+
+    @Test
+    void dosAprobacionesSimultaneasSoloGuardanUnaJugadaYAplicanUnDano() throws Exception {
+        CyclicBarrier aprobaciones = new CyclicBarrier(2);
+        doAnswer(invocacion -> {
+            invocacion.callRealMethod();
+            aprobaciones.await(10, TimeUnit.SECONDS);
+            return null;
+        }).when(clienteA3).validar(any());
+
+        try (var solicitudes = Executors.newFixedThreadPool(2)) {
+            var primera = solicitudes.submit(() -> mockMvc.perform(post("/jugadas/explosion")
+                    .contentType(MediaType.APPLICATION_JSON).content(solicitud(3))).andReturn().getResponse());
+            var segunda = solicitudes.submit(() -> mockMvc.perform(post("/jugadas/explosion")
+                    .contentType(MediaType.APPLICATION_JSON).content(solicitud(3))).andReturn().getResponse());
+            var respuestas = List.of(primera.get(15, TimeUnit.SECONDS), segunda.get(15, TimeUnit.SECONDS));
+            assertEquals(List.of(201, 409), respuestas.stream().map(r -> r.getStatus()).sorted().toList());
+            var conflicto = respuestas.stream().filter(r -> r.getStatus() == 409).findFirst().orElseThrow();
+            assertTrue(conflicto.getContentAsString().contains("Creeper ya registrado"));
+        }
+
+        assertEquals(2, CECILIA.pedidos().size());
+        assertTrue(CECILIA.pedidos().stream().allMatch(pedido -> pedido.contains("\"yaDetonado\":false")));
+        assertEquals(1, jugadaRepository.count());
+        mockMvc.perform(get("/entidades/{id}", jugador.getId())).andExpect(jsonPath("$.salud").value(12));
+        mockMvc.perform(get("/entidades/{id}", aldeano.getId())).andExpect(jsonPath("$.salud").value(12));
+    }
+
+    @Test
+    void falloAlGuardarLaJugadaRevierteLaFilaYAmbasSaludes() throws Exception {
+        doAnswer(invocacion -> {
+            Jugada guardada = invocacion.getArgument(0);
+            entityManager.persist(guardada);
+            entityManager.flush();
+            assertEquals(12, jdbcTemplate.queryForObject(
+                    "select salud from entidades where id = ?", Integer.class, jugador.getId()));
+            assertEquals(12, jdbcTemplate.queryForObject(
+                    "select salud from entidades where id = ?", Integer.class, aldeano.getId()));
+            assertEquals(1, jdbcTemplate.queryForObject(
+                    "select count(*) from jugadas where id = ?", Integer.class, guardada.getId()));
+            throw new IllegalStateException("Fallo simulado después de guardar la jugada");
+        }).when(jugadaRepository).save(any(Jugada.class));
+
+        ServletException error = assertThrows(ServletException.class, () -> mockMvc.perform(
+                post("/jugadas/explosion").contentType(MediaType.APPLICATION_JSON).content(solicitud(3))));
+        assertEquals("Fallo simulado después de guardar la jugada", error.getCause().getMessage());
+        assertBaseSinCambios();
+        assertEquals(1, IRINA.pedidos().size());
+        assertEquals(1, CECILIA.pedidos().size());
     }
 
     @Test

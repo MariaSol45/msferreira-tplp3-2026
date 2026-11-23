@@ -9,7 +9,6 @@
 - Enunciado: [ejercicio POO-09](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/ejercicio-poo-09-apis-cruzadas-2026-11-16.md).
 - Rúbrica: [RUBRICA-ejercicios-lp3-2026](https://github.com/alefq/afq-taller-git-2024/blob/main/docs/RUBRICA-ejercicios-lp3-2026.md).
 - Documentación detallada: [README](README.md) y [BITACORA](BITACORA.md).
-- Enlace exacto al commit final: **[PENDIENTE — completar manualmente después del push]**.
 
 ## Grupo y round robin
 
@@ -21,17 +20,17 @@
 
 Round robin documentado en el README: A1 consulta a Irina y Cecilia; Irina consulta a Cecilia y a María Sol; Cecilia consulta a Irina y a María Sol. Las tres usan las mismas tres URLs.
 
-No hay URL de repositorio GitHub ni hash de commit de A2/A3 en la documentación disponible. No se inventan: solo se pueden arrancar en sus propias máquinas. Si la cátedra pide clonar los tres servicios, completar ese dato manualmente.
+Queda pendiente documentar los repositorios y hashes de A2 y A3 para reproducir desde un checkout las versiones usadas el 23/11. Las respuestas guardadas corresponden a esa ejecución histórica.
 
 ## Escenario
 
 `POST /jugadas/explosion` registra una explosión de Creeper sobre un Jugador y un Aldeano persistentes solo si A1, A2 y A3 la aceptan. El éxito guarda la `Jugada` en H2 y aplica el daño en la misma transacción; si A2 o A3 rechazan, H2 queda igual y la respuesta identifica el origen del rechazo.
 
-Orden: validaciones propias de A1 → A2 → A3 → escritura. Las llamadas HTTP quedan fuera de la transacción.
+Orden: validaciones propias de A1 → A2 → A3 → escritura. Las llamadas HTTP quedan fuera de la transacción. Tras ambas aprobaciones, A1 bloquea la fila del Creeper en H2 y comprueba de nuevo si ya hay una jugada antes de aplicar daño. Un fallo de escritura revierte el daño y la jugada.
 
 ## Contrato del escenario
 
-Solicitud:
+Solicitud de ejemplo. Usar los IDs devueltos al crear las entidades:
 
 ```json
 {
@@ -46,10 +45,11 @@ Respuestas:
 
 | Caso | Código | Señal principal |
 |---|---:|---|
-| A2 y A3 aceptan | 201 | `Jugada` guardada, `Location: /jugadas/{id}` |
+| A2 y A3 aceptan y se confirma la escritura | 201 | `Jugada` guardada, `Location: /jugadas/{id}` |
 | Rechazo de A2 o A3 | 409 | `origen` = `A2` o `A3`, `motivoCompanero`, cuerpo original del compañero |
 | A2/A3 no responde, 5xx o 200 sin `aceptada=true` | 502 | `origen` = `A2` o `A3` |
 | Regla propia de tiempo | 409 | `ErrorExplosion` sin `origen` |
+| A1 detecta una jugada existente al escribir | 409 | `ErrorExplosion` «Creeper ya registrado», sin `origen` remoto |
 | Regla propia de radio | 422 | `ErrorExplosion` |
 | ID inexistente o dato inválido | 404 / 400 | No se consulta a los compañeros |
 
@@ -97,14 +97,16 @@ Respuestas:
    curl -s -X POST "$A1/entidades" -H 'Content-Type: application/json' \
      -d '{"tipo":"aldeano","salud":20,"posicionX":4,"posicionY":0,"posicionZ":0,"velocidad":1,"domesticable":true,"profesion":"Granjero"}'
 
+   read -r -p 'IDs de Creeper, Jugador y Aldeano (separados por espacios): ' creeper_id jugador_id aldeano_id
    curl -i -X POST "$A1/jugadas/explosion" -H 'Content-Type: application/json' \
-     -d '{"creeperId":1,"jugadorId":2,"aldeanoId":3,"tiempoTranscurrido":3}'
+     -d "$(jq -n --argjson creeper "$creeper_id" --argjson jugador "$jugador_id" --argjson aldeano "$aldeano_id" \
+       '{creeperId:$creeper,jugadorId:$jugador,aldeanoId:$aldeano,tiempoTranscurrido:3}')"
    curl -s "$A1/jugadas" | jq .
    ```
 
    Resultado esperado: 201 con `Location`, jugada leíble por `GET` y salud reducida de los objetivos.
 
-5. Rechazo de A2: crear un Jugador a 4.5 bloques, dentro del radio 5 de A1 pero fuera del radio 3 de Irina, y usarlo en `/jugadas/explosion`. Resultado esperado: 409 con `origen=A2`; `GET /jugadas` y las saludes deben quedar igual.
+5. Rechazo de A2: crear un Jugador a 4.5 bloques, dentro del radio 5 de A1 pero fuera del radio 3 de Irina, y usarlo en `/jugadas/explosion`. Resultado esperado: 409 con `origen=A2`. Comparar la lista y las saludes con el estado inmediatamente anterior al rechazo. Si ya se ejecutó el feliz, la jugada anterior debe seguir en la lista.
 
 6. Rechazo de A3: ejecutar de nuevo el escenario feliz con el mismo Creeper. A1 envía `yaDetonado=true` porque ya existe una `Jugada`; resultado esperado: 409 con `origen=A3`, sin segunda jugada ni daño.
 
@@ -118,14 +120,8 @@ Respuestas:
    ./mvnw -Dsurefire.runOrder=random -Dsurefire.runOrder.random.seed=620824 test
    ```
 
-Este documento no registra nuevos resultados de pruebas. La evidencia y los conteos ya documentados están en el README, la BITACORA y las respuestas de ejemplo de Insomnia.
+La suite incluye dos pedidos concurrentes con ambas aprobaciones remotas simuladas y un fallo de guardado inyectado después de enviar los cambios a H2. Los resultados de Maven y la evidencia histórica de servicios reales se describen en el README y la bitácora, respectivamente.
 
 ## Entregable en Classroom
 
-Adjuntar este archivo `.md` junto con el enlace exacto al commit final.
-
-### Enlace al commit de entrega
-
-**[PENDIENTE — reemplazar manualmente por la URL exacta del commit final con hash completo después del push.]**
-
-Formato: `https://github.com/MariaSol45/msferreira-tplp3-2026/commit/<hash>`.
+Adjuntar este archivo `.md` y la URL de GitHub del commit de entrega con su hash completo en el mismo ítem de Classroom.

@@ -8,11 +8,18 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import py.edu.uc.lp3.msferreira.minecraft.service.exception.CreeperYaRegistradoException;
 import py.edu.uc.lp3.msferreira.minecraft.service.exception.ExplosionNoPreparadaException;
 import py.edu.uc.lp3.msferreira.minecraft.service.exception.ObjetivoFueraDeRangoException;
 
 @RestControllerAdvice
 public class ExplosionExceptionHandler {
+
+    @ExceptionHandler(CreeperYaRegistradoException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorExplosion manejarCreeperYaRegistrado(CreeperYaRegistradoException excepcion) {
+        return new ErrorExplosion("Creeper ya registrado", excepcion.getMessage(), HttpStatus.CONFLICT.value());
+    }
 
     @ExceptionHandler(ExplosionNoPreparadaException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
