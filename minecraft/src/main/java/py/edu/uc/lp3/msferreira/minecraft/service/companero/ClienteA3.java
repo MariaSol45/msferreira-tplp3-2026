@@ -28,4 +28,9 @@ public class ClienteA3 extends ClienteCompanero {
         cuerpo.put("yaDetonado", estado.yaDetonado());
         return cuerpo;
     }
+
+    @Override
+    protected String describirCuerpo() {
+        return "ValidacionExplosionRequest (saludCreeper, yaDetonado)";
+    }
 }

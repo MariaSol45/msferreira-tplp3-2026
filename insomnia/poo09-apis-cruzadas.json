@@ -10,7 +10,7 @@
       "modified": 1795370400000,
       "created": 1795370400000,
       "name": "POO-09 Minecraft - APIs cruzadas (A1 María Sol)",
-      "description": "A1 = María Sol (este servicio). A2 = Irina, A3 = Cecilia. Orden de arranque: primero A2 y A3, después A1 (ver README). Ejecutar las carpetas en orden y copiar los ids de los POST de la carpeta 02 al entorno.",
+      "description": "A1 = María Sol (este servicio). A2 = Irina, A3 = Cecilia. Orden de arranque: primero A2 y A3, después A1 (ver README). Ejecutar las carpetas en orden y copiar los ids de los POST de la carpeta 02 al entorno: creeper_id, jugador_id, aldeano_id y jugador_lejano_id (este último solo para el rechazo de A2). Las respuestas reales capturadas están en insomnia/respuestas-ejemplo/.",
       "scope": "collection",
       "_type": "workspace"
     },
@@ -26,7 +26,8 @@
         "base_url_a3": "http://100.122.114.103:8083",
         "creeper_id": "1",
         "jugador_id": "2",
-        "aldeano_id": "3"
+        "aldeano_id": "3",
+        "jugador_lejano_id": "4"
       },
       "dataPropertyOrder": null,
       "color": null,
@@ -52,7 +53,7 @@
       "modified": 1795370400000,
       "created": 1795370400000,
       "name": "02 - Preparación en A1",
-      "description": "Crea los tres participantes en la H2 de A1. Copiar cada id devuelto al entorno.",
+      "description": "Crea cuatro participantes en la H2 de A1. Copiar cada id devuelto al entorno. El Jugador lejano (4.5 bloques) queda dentro del radio 5 de A1 pero fuera del radio 3 de Irina, por eso provoca el rechazo de A2 sin romper las reglas propias.",
       "environment": {},
       "environmentPropertyOrder": null,
       "metaSortKey": 200,
@@ -250,13 +251,38 @@
       "_type": "request"
     },
     {
+      "_id": "req_07b",
+      "parentId": "grp_02",
+      "modified": 1795370400000,
+      "created": 1795370400000,
+      "url": "{{ _.base_url_a1 }}/entidades",
+      "name": "07b - POST crear Jugador lejano (4.5 bloques)",
+      "description": "201. Copiar el id a jugador_lejano_id. Se usa en 12: A1 acepta 4.5 <= radio 5, pero Irina rechaza porque 4.5 > 3.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"tipo\": \"jugador\",\n  \"nombre\": \"SteveLejano\",\n  \"nivelEXP\": 0,\n  \"salud\": 20,\n  \"posicionX\": 4.5,\n  \"posicionY\": 0,\n  \"posicionZ\": 0,\n  \"velocidad\": 1\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 75,
+      "isPrivate": false,
+      "_type": "request"
+    },
+    {
       "_id": "req_08",
       "parentId": "grp_03",
       "modified": 1795370400000,
       "created": 1795370400000,
       "url": "{{ _.base_url_a1 }}/jugadas/explosion",
       "name": "08 - POST escenario feliz",
-      "description": "201 con Location /jugadas/{id}. aceptadaPorA2 = Irina y aceptadaPorA3 = Cecilia. Jugador y Aldeano bajan de 20 a 14.",
+      "description": "201 con Location /jugadas/{id}. aceptadaPorA2 = Irina y aceptadaPorA3 = Cecilia. Jugador y Aldeano bajan de 20 a 14. Respuesta real capturada: insomnia/respuestas-ejemplo/01-feliz-201.json (A2 real; A3 local porque Cecilia no responde). Después ejecutar 09 y 10.",
       "method": "POST",
       "body": {
         "mimeType": "application/json",
@@ -315,7 +341,7 @@
       "created": 1795370400000,
       "url": "{{ _.base_url_a2 }}/api/minecraft/reglas/mecha-corta",
       "name": "11 - POST A2 directo: jugada que rompe su regla",
-      "description": "Regla mecha-corta real de Irina (OpenAPI consultado el 21/11/2026). El jugador está a 6 bloques: responde 422 con codigo fuera_de_alcance.",
+      "description": "Regla mecha-corta real de Irina (OpenAPI consultado el 21/11/2026 y llamado de nuevo el 23/11/2026). El jugador está a 6 bloques: responde 422 con codigo fuera_de_alcance. Cuerpo real en insomnia/respuestas-ejemplo/02-rechazo-a2-409.json.",
       "method": "POST",
       "body": {
         "mimeType": "application/json",
@@ -340,11 +366,11 @@
       "created": 1795370400000,
       "url": "{{ _.base_url_a1 }}/jugadas/explosion",
       "name": "12 - POST escenario con rechazo de A2",
-      "description": "Esperado: 409 con origen A2 si Irina rechaza la jugada, o 502 con origen A2 si su servicio está apagado. En ambos casos no se guarda nada. Para probarlo sin Irina: detener el servicio de 8082 y enviar este pedido.",
+      "description": "Usa jugador_lejano_id (4.5 bloques): mis reglas pasan, pero Irina rechaza con 422 fuera_de_alcance y A1 responde 409 con origen=A2. No se guarda nada; ver 13 y 14. Respuesta real: insomnia/respuestas-ejemplo/02-rechazo-a2-409.json. Si A2 no responde, el mismo pedido devuelve 502 (04-a2-caida-502.json).",
       "method": "POST",
       "body": {
         "mimeType": "application/json",
-        "text": "{\n  \"creeperId\": {{ _.creeper_id }},\n  \"jugadorId\": {{ _.jugador_id }},\n  \"aldeanoId\": {{ _.aldeano_id }},\n  \"tiempoTranscurrido\": 3\n}"
+        "text": "{\n  \"creeperId\": {{ _.creeper_id }},\n  \"jugadorId\": {{ _.jugador_lejano_id }},\n  \"aldeanoId\": {{ _.aldeano_id }},\n  \"tiempoTranscurrido\": 3\n}"
       },
       "parameters": [],
       "headers": [
@@ -380,9 +406,9 @@
       "parentId": "grp_04",
       "modified": 1795370400000,
       "created": 1795370400000,
-      "url": "{{ _.base_url_a1 }}/entidades/{{ _.jugador_id }}",
+      "url": "{{ _.base_url_a1 }}/entidades/{{ _.jugador_lejano_id }}",
       "name": "14 - GET Jugador sin cambios (A2)",
-      "description": "La salud es la misma que antes del rechazo.",
+      "description": "El Jugador lejano sigue con salud 20: ni A2 ni A3 aplicaron daño.",
       "method": "GET",
       "body": {},
       "parameters": [],
@@ -399,7 +425,7 @@
       "created": 1795370400000,
       "url": "{{ _.base_url_a3 }}/explosiones/validar",
       "name": "15 - POST A3 directo: jugada que rompe su regla",
-      "description": "Validación real de Cecilia (OpenAPI consultado el 21/11/2026). Con saludCreeper 0 responde 422 CreeperMuertoException; con yaDetonado true responde 409 CreeperYaDetonadoException.",
+      "description": "Regla real de Cecilia leída de su OpenAPI el 21/11/2026: con saludCreeper 0 responde 422 CreeperMuertoException y con yaDetonado true responde 409 CreeperYaDetonadoException. El 23/11/2026 Cecilia no responde, así que la evidencia local del 409 está en insomnia/respuestas-ejemplo/03-rechazo-a3-409.json; el 422 real se observó el 21/11/2026.",
       "method": "POST",
       "body": {
         "mimeType": "application/json",
@@ -424,7 +450,7 @@
       "created": 1795370400000,
       "url": "{{ _.base_url_a1 }}/jugadas/explosion",
       "name": "16 - POST escenario con rechazo de A3",
-      "description": "Esperado: 409 con origen A3 si Cecilia rechaza la jugada (A2 ya aceptó), o 502 con origen A3 si su servicio está apagado. No se guarda nada. Para probarlo sin Cecilia: detener el servicio de 8083 (con 8082 arriba) y enviar este pedido.",
+      "description": "Ejecutar después de 08: A1 envía yaDetonado=true porque ya existe una Jugada para ese Creeper; A2 acepta y Cecilia debe rechazar con 409. A1 responde 409 con origen=A3 y no guarda otra jugada. Respuesta real con A3 local: insomnia/respuestas-ejemplo/03-rechazo-a3-409.json. Con Cecilia caída, el mismo pedido dio 502 (05-a3-caida-502.json).",
       "method": "POST",
       "body": {
         "mimeType": "application/json",

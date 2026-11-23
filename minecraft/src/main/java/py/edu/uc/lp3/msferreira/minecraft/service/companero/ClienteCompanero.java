@@ -6,11 +6,12 @@ import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.core.NestedExceptionUtils;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
@@ -31,7 +32,7 @@ import py.edu.uc.lp3.msferreira.minecraft.service.exception.RechazoCompaneroExce
  * Cada hija decide cómo se arma el cuerpo según el OpenAPI de su compañero.
  */
 public abstract class ClienteCompanero {
-    private static final Logger REGISTRO = LoggerFactory.getLogger(ClienteCompanero.class);
+    private static final Logger REGISTRO = LogManager.getLogger(ClienteCompanero.class);
     private static final JsonMapper MAPEO = JsonMapper.builder().build();
 
     private final String rol;
@@ -56,53 +57,64 @@ public abstract class ClienteCompanero {
     /** Arma el cuerpo que espera la ruta de validación del compañero, según su OpenAPI. */
     protected abstract Object armarCuerpo(EstadoExplosion estado);
 
+    /** Nombre del esquema del cuerpo, para el log DEBUG sin exponer valores. */
+    protected abstract String describirCuerpo();
+
     /**
      * Pide al compañero que valide la jugada. Termina normalmente si respondió 2xx con aceptada=true;
      * lanza {@link RechazoCompaneroException} si respondió 4xx y
      * {@link CompaneroNoDisponibleException} si no respondió, respondió 5xx o dio un cuerpo inesperado.
      */
     public void validar(EstadoExplosion estado) {
-        REGISTRO.debug("Consultando a {} ({}) en {}", rol, companero, getUrlValidacion());
-        String cuerpo;
+        Object cuerpo = armarCuerpo(estado);
+        REGISTRO.debug("Preparando solicitud para {} ({}) según esquema {}", rol, companero, describirCuerpo());
+        ResponseEntity<String> respuesta;
         try {
-            cuerpo = restClient.post()
+            REGISTRO.debug("Enviando POST a {} (destino {} {})", rol, companero, getUrlValidacion());
+            respuesta = restClient.post()
                     .uri(rutaValidacion)
                     .contentType(MediaType.APPLICATION_JSON)
                     .accept(MediaType.APPLICATION_JSON)
-                    .body(armarCuerpo(estado))
+                    .body(cuerpo)
                     .retrieve()
-                    .onStatus(HttpStatusCode::is4xxClientError, (pedido, respuesta) -> {
-                        String respuestaCruda = leerCuerpo(respuesta);
+                    .onStatus(HttpStatusCode::is4xxClientError, (pedido, respuestaHttp) -> {
+                        String respuestaCruda = leerCuerpo(respuestaHttp);
                         RespuestaCompanero interpretada = interpretar(respuestaCruda);
-                        REGISTRO.debug("{} rechazó la jugada con HTTP {} ({})", rol,
-                                respuesta.getStatusCode().value(), interpretada.motivo());
+                        REGISTRO.debug("HTTP {} recibido de {} ({}): rechazo identificado, motivo={}",
+                                respuestaHttp.getStatusCode().value(), rol, companero, interpretada.motivo());
                         throw new RechazoCompaneroException(
-                                rol, companero, respuesta.getStatusCode().value(), respuestaCruda,
+                                rol, companero, respuestaHttp.getStatusCode().value(), respuestaCruda,
                                 interpretada.motivo()
                         );
                     })
-                    .onStatus(HttpStatusCode::is5xxServerError, (pedido, respuesta) -> {
-                        String respuestaCruda = leerCuerpo(respuesta);
-                        REGISTRO.debug("{} respondió HTTP {}", rol, respuesta.getStatusCode().value());
+                    .onStatus(HttpStatusCode::is5xxServerError, (pedido, respuestaHttp) -> {
+                        String respuestaCruda = leerCuerpo(respuestaHttp);
+                        REGISTRO.debug("HTTP {} recibido de {} ({}): no disponible, se traduce a 502",
+                                respuestaHttp.getStatusCode().value(), rol, companero);
                         throw new CompaneroNoDisponibleException(rol, companero,
-                                "respondió " + respuesta.getStatusCode().value() + " " + respuestaCruda, null);
+                                "respondió " + respuestaHttp.getStatusCode().value() + " " + respuestaCruda, null);
                     })
-                    .body(String.class);
+                    .toEntity(String.class);
         } catch (CompaneroException excepcion) {
             throw excepcion;
         } catch (RestClientException excepcion) {
-            REGISTRO.debug("Falló la comunicación con {}: {}", rol, causa(excepcion));
+            REGISTRO.debug("Fallo de comunicación con {} ({}): {}; se traduce a 502",
+                    rol, companero, causa(excepcion));
             throw new CompaneroNoDisponibleException(rol, companero,
                     "no se pudo llamar a " + baseUrl + rutaValidacion + " (" + causa(excepcion) + ")", excepcion);
         }
 
-        RespuestaCompanero interpretada = interpretar(cuerpo);
+        int estadoHttp = respuesta.getStatusCode().value();
+        REGISTRO.debug("HTTP {} recibido de {} ({})", estadoHttp, rol, companero);
+        RespuestaCompanero interpretada = interpretar(respuesta.getBody());
         if (!Boolean.TRUE.equals(interpretada.aceptada())) {
-            REGISTRO.debug("{} devolvió una respuesta inesperada: falta aceptada=true", rol);
+            REGISTRO.debug("HTTP {} de {} ({}) sin aceptada=true: inválido, se traduce a 502",
+                    estadoHttp, rol, companero);
             throw new CompaneroNoDisponibleException(rol, companero,
                     "respuesta inesperada al validar (se esperaba aceptada=true)", null);
         }
-        REGISTRO.debug("{} aceptó la jugada (regla={})", rol, interpretada.regla());
+        REGISTRO.debug("Aceptación confirmada: HTTP {} de {} ({}), regla={}",
+                estadoHttp, rol, companero, interpretada.regla());
     }
 
     public String getRol() {
@@ -135,8 +147,7 @@ public abstract class ClienteCompanero {
                     primerTexto(nodo, "regla")
             );
         } catch (JacksonException excepcion) {
-            REGISTRO.debug("No se pudo interpretar la respuesta del compañero: {}",
-                    excepcion.getClass().getSimpleName());
+            REGISTRO.debug("Respuesta no interpretable: {}", excepcion.getClass().getSimpleName());
             return new RespuestaCompanero(null, null, null, null);
         }
     }

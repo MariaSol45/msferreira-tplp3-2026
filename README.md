@@ -52,7 +52,7 @@ No se usa `localhost` para llamar a A2 ni a A3: las URLs por defecto son las IP 
 4. [Validaciones propias (HTTP 400, 409 y 422)](#4-validaciones-propias-http-400-409-y-422)
 5. [Fallo de comunicacion (HTTP 502)](#5-fallo-de-comunicacion-http-502)
 
-Los diagramas muestran A1, A2, A3 y H2 solo cuando intervienen. El camino feliz con los tres servicios reales está **pendiente**; los estados de verificación se resumen al final de esta sección.
+Los diagramas muestran A1, A2, A3 y H2 solo cuando intervienen. El camino feliz se verificó el 23/11/2026 con A2 real y A3 local; con los tres servicios reales sigue **pendiente** porque Cecilia no responde. Los estados de verificación se resumen al final de esta sección.
 
 #### 1. Camino feliz (validaciones HTTP 200)
 
@@ -72,10 +72,11 @@ sequenceDiagram
     A1->>A3: POST /explosiones/validar (saludCreeper, yaDetonado)
     A3-->>A1: 200 aceptada=true
     A1->>H2: aplicar daño y guardar Jugada (una transacción)
+    Note over H2: INSERT en JUGADA y UPDATE de Jugador/Aldeano
     A1-->>C: 201 + Location /jugadas/{id}
 ```
 
-**Estado:** verificado con los servidores HTTP locales de `JugadaEscenarioIntegrationTests`. **Pendiente de verificar con A2 y A3 reales**: Cecilia no responde en esta sesión, así que este diagrama no se presenta como probado contra los tres servicios.
+**Estado:** verificado con los servidores HTTP locales de `JugadaEscenarioIntegrationTests` y, el 23/11/2026, por HTTP con A1 en H2 en memoria, A2 real (200) y A3 local (200): 201, `Location`, jugada leíble por GET y salud 14. **Pendiente con A3 real**: Cecilia no responde, así que no se presenta como probado contra los tres servicios.
 
 #### 2. Rechazo de Irina (A2) (HTTP 422)
 
@@ -85,7 +86,6 @@ sequenceDiagram
     participant A1 as A1 María Sol
     participant H2 as H2 A1
     participant A2 as A2 Irina
-    participant A3 as A3 Cecilia
     C->>A1: POST /jugadas/explosion
     A1->>H2: describir: leer Creeper, Jugador, Aldeano y Jugadas
     H2-->>A1: salud, posiciones, yaDetonado
@@ -93,7 +93,8 @@ sequenceDiagram
     A1->>A2: POST /api/minecraft/reglas/mecha-corta
     A2-->>A1: 422 codigo=fuera_de_alcance
     A1-->>C: 409 ErrorCompanero (origen=A2, estadoCompanero=422, motivoCompanero=fuera_de_alcance)
-    Note over A1,H2: A3 no se consulta; no se aplica daño ni se guarda Jugada
+    Note over A1,A2: A3 no se consulta
+    Note over H2: sin INSERT en JUGADA ni UPDATE de salud
 ```
 
 A2 también puede responder 409 (`entidad_muerta`) o 400 (`dato_invalido`); A1 los traduce a 409 con el `motivoCompanero` correspondiente.
@@ -116,7 +117,8 @@ sequenceDiagram
     A1->>A3: POST /explosiones/validar (yaDetonado=true si ya hay Jugada)
     A3-->>A1: 409 tipo=CreeperYaDetonadoException
     A1-->>C: 409 ErrorCompanero (origen=A3, estadoCompanero=409, motivoCompanero=CreeperYaDetonadoException)
-    Note over A1,H2: no se aplica daño ni se guarda Jugada
+    Note over A1,A3: A2 ya aceptó con 200, pero eso no basta para escribir
+    Note over H2: sin INSERT en JUGADA ni UPDATE de salud
 ```
 
 A3 también responde 422 con `tipo=CreeperMuertoException`; A1 lo traduce a 409 con `motivoCompanero=CreeperMuertoException`.
@@ -167,18 +169,19 @@ sequenceDiagram
         A3--xA1: timeout / 5xx / respuesta sin aceptada=true
         A1-->>C: 502 ErrorCompanero (origen=A3)
     end
-    Note over A1,H2: H2 queda igual; una llamada fallida nunca cuenta como aprobación
+    Note over H2: sin INSERT en JUGADA ni UPDATE de salud
+    Note over A1,A3: una llamada fallida nunca cuenta como aprobación
 ```
 
 **Verificación de los cinco diagramas:**
 
 | Diagrama | Estado |
 |---|---|
-| 1. Camino feliz | **Pendiente con servicios reales** (A3/Cecilia no responde); cubierto con servidores locales en `JugadaEscenarioIntegrationTests`. |
-| 2. Rechazo de A2 | **Verificado con A2 real**: el smoke respondió 422 `fuera_de_alcance` y A1 devolvió 409 con `origen=A2`, `estadoCompanero=422` y `motivoCompanero=fuera_de_alcance`, sin guardar jugada. |
-| 3. Rechazo de A3 | Implementado y cubierto con servidor local y con el OpenAPI real de A3; **sin observación real del 409** porque Cecilia no responde. Sí se observó su 422 real antes de la caída. |
+| 1. Camino feliz | **Verificado el 23/11 con A2 real y A3 local**: 201, `Location: /jugadas/2`, GET mostró la jugada y salud 14. **Pendiente con A3 real** (Cecilia no responde). |
+| 2. Rechazo de A2 | **Verificado con A2 real**: el 23/11 respondió 422 `fuera_de_alcance` y A1 devolvió 409 con `origen=A2`, `estadoCompanero=422` y `motivoCompanero=fuera_de_alcance`; GET `/jugadas` siguió vacío y las saludes en 20. A3 no se consultó. |
+| 3. Rechazo de A3 | **Verificado con A3 local** el 23/11: 409 `CreeperYaDetonadoException`, A1 respondió 409 con `origen=A3` y no hubo segunda jugada ni daño. **Sin observación del 409 con Cecilia en línea**; su 422 real se observó el 21/11. |
 | 4. Reglas propias | **Verificado** en `ExplosionValidacionIntegrationTests` y en la colección POO-08 de Insomnia; `/explosiones/validar` no toca H2. |
-| 5. Fallo de comunicación | **Verificado**: la caída real de A3 produjo 502 con `origen=A3` y sin cambios en H2; 5xx, conexión rechazada y respuestas inesperadas están en `ClienteCompaneroTests`. |
+| 5. Fallo de comunicación | **Verificado el 23/11**: caída real de A3 dio 502 con `origen=A3`; A2 apuntado a `localhost:9` dio 502 con `origen=A2`. En ambos casos `GET /jugadas` siguió vacío. 5xx y respuestas inesperadas están en `ClienteCompaneroTests`. |
 
 Orden y por qué:
 
@@ -213,8 +216,24 @@ Respuestas:
 | `A2_RUTA_VALIDACION` | `companeros.a2.ruta-validacion` | `/api/minecraft/reglas/mecha-corta` |
 | `A3_BASE_URL` | `companeros.a3.base-url` | `http://100.122.114.103:8083` |
 | `A3_RUTA_VALIDACION` | `companeros.a3.ruta-validacion` | `/explosiones/validar` |
+| `LOGGING_LEVEL_PY_EDU_UC_LP3_MSFERREIRA_MINECRAFT` | `logging.level.py.edu.uc.lp3.msferreira.minecraft` | `INFO` (`DEBUG` para el escenario) |
 
-`GET /jugadas/companeros` devuelve las URL efectivas, útil para confirmar la configuración antes de probar el escenario. Para ver los pasos de integración: `-Dlogging.level.py.edu.uc.lp3.msferreira.minecraft.service=DEBUG` (o `LOGGING_LEVEL_PY_EDU_UC_LP3_MSFERREIRA_MINECRAFT_SERVICE=DEBUG`). Los logs no incluyen contraseñas ni cuerpos de pedido.
+`GET /jugadas/companeros` devuelve las URL efectivas, útil para confirmar la configuración antes de probar el escenario. El backend de logging es **Log4j2** (`spring-boot-starter-log4j2`): se excluyó `spring-boot-starter-logging` y no queda Logback en el árbol de dependencias. El nivel general es `INFO`; para ver cada paso de A2/A3, iniciar con `LOGGING_LEVEL_PY_EDU_UC_LP3_MSFERREIRA_MINECRAFT=DEBUG ./mvnw spring-boot:run` (o `-Dlogging.level.py.edu.uc.lp3.msferreira.minecraft=DEBUG`). Los logs no incluyen contraseñas ni cuerpos completos de pedido/respuesta.
+
+Ejemplo real de `DEBUG` en un rechazo de A3:
+
+```text
+DEBUG ... JugadaService      : Iniciando jugada: creeperId=1, jugadorId=2, aldeanoId=3, tiempoTranscurrido=3
+DEBUG ... JugadaService      : Validación local A1 correcta; se continúa con A2 y A3
+DEBUG ... ClienteCompanero   : Preparando solicitud para A2 (Irina) según esquema MechaCortaRequest (saludCreeper, creeper, objetivos)
+DEBUG ... ClienteCompanero   : Enviando POST a A2 (destino Irina http://100.87.95.24:8082/api/minecraft/reglas/mecha-corta)
+DEBUG ... ClienteCompanero   : HTTP 200 recibido de A2 (Irina)
+DEBUG ... ClienteCompanero   : Aceptación confirmada: HTTP 200 de A2 (Irina), regla=null
+DEBUG ... ClienteCompanero   : HTTP 422 recibido de A3 (Cecilia): rechazo identificado, motivo=CreeperMuertoException
+DEBUG ... JugadaService      : Decisión: no persistir; A3 (Cecilia) originó RechazoCompaneroException
+DEBUG ... CompaneroExceptionHandler : HTTP 409 devuelto: rechazo de A3 (Cecilia) con motivo CreeperMuertoException
+```
+
 - **¿Se propagan o se traducen los errores?** Se traducen a mi jerarquía: `CompaneroException` (abstracta) con `RechazoCompaneroException` (4xx) y `CompaneroNoDisponibleException` (sin respuesta o 5xx). `CompaneroExceptionHandler` responde 409 o 502 y el campo `origen` distingue A2 de A3. El cuerpo original del compañero se conserva en `respuestaCompanero`.
 - **Si una compañera renombra una ruta, ¿alcanza con su OpenAPI?** Sí: la ruta y la URL son configuración. No se copió código de nadie; los clientes solo conocen la URL, el verbo y el cuerpo publicados.
 
@@ -287,7 +306,19 @@ Las mismas solicitudes están en [`insomnia/poo09-apis-cruzadas.json`](insomnia/
 
 ### Si un compañero no responde
 
-El escenario responde 502 con el `origen` y no guarda nada; tampoco si un 200 no trae `aceptada=true`. Para confirmar los rechazos sin depender de las compañeras, apagar una de ellas o cambiar su IP con las variables de entorno. Las respuestas de ejemplo están en [`insomnia/respuestas-ejemplo/`](insomnia/respuestas-ejemplo/); las automatizadas usan servidores HTTP locales que simulan a A2 y A3.
+El escenario responde 502 con el `origen` y no guarda nada; tampoco si un 200 no trae `aceptada=true`. Para confirmar los rechazos sin depender de las compañeras, apagar una de ellas o cambiar su IP con las variables de entorno. Las respuestas de [`insomnia/respuestas-ejemplo/`](insomnia/respuestas-ejemplo/) son copias de ejecuciones HTTP reales del 23/11/2026: A2 real y A3 caída/local según cada caso; no son respuestas inventadas. Las automatizadas usan servidores HTTP locales que simulan a A2 y A3.
+
+### Estado frente a la rúbrica POO-09 (15 puntos)
+
+| Requisito | Estado |
+|---|---|
+| Corrección de POO-08 (3) | Cumplido: tabla de observaciones cerradas al inicio de este README. |
+| OpenAPI propio (3) | Cumplido: `/v3/api-docs`, `/v3/api-docs.yaml` y Swagger UI cubren CRUD, simulación, validación y errores; respondieron 200. |
+| Mapa A1/A2/A3 (3) | Cumplido: nombres, URLs Tailscale, OpenAPI y reglas en la tabla del mapa. |
+| Consumo de A2 y A3 (3) | Cumplido con evidencia: clientes configurados y llamadas reales a los OpenAPI; A2 respondió 200/422 y A3 200/422 antes de caer. Queda pendiente repetir A3 en línea. |
+| Escenario persistido y atribución de rechazos (3) | Cumplido con A2 real y A3 local: 201 con jugada leíble por GET, 409 de A2 y de A3 sin cambios en H2, 502 por caída. Queda pendiente el feliz con A3 real. |
+| Enlace exacto al commit de la solución | Pendiente: hay cambios sin confirmar en esta rama; el enlace se agregará después del commit de entrega. |
+| Especificación en Classroom | Pendiente: cargar el Markdown aplicado a A1/A2/A3 con el enlace del commit. |
 
 ## Objetivo
 
@@ -571,14 +602,16 @@ La suite evaluada era verde porque comprobaba el comportamiento que estaba mal e
 
 ### POO-09
 
-Archivo: `insomnia/poo09-apis-cruzadas.json`. El entorno tiene `base_url_a1`, `base_url_a2`, `base_url_a3` y los ids de los participantes. Carpetas:
+Archivo: `insomnia/poo09-apis-cruzadas.json`. El entorno tiene `base_url_a1`, `base_url_a2`, `base_url_a3` y los ids `creeper_id`, `jugador_id`, `aldeano_id` y `jugador_lejano_id`. Carpetas:
 
 1. OpenAPI de A1, A2 y A3, y a quién consulta A1.
-2. Preparación en A1: crear Creeper, Jugador y Aldeano y copiar los ids al entorno.
+2. Preparación en A1: crear Creeper, Jugador, Aldeano y Jugador lejano (4.5 bloques) y copiar los ids al entorno. El lejano se usa solo en el rechazo de A2.
 3. Escenario feliz y GET de comprobación.
-4. Rechazo de A2 (Irina): el pedido directo a su validación, el escenario y los GET que muestran que nada cambió.
-5. Rechazo de A3 (Cecilia): lo mismo.
+4. Rechazo de A2 (Irina): pedido directo a su validación, escenario con `jugador_lejano_id` y GET que muestran que nada cambió.
+5. Rechazo de A3 (Cecilia): lo mismo; el escenario se ejecuta después del feliz para que A1 envíe `yaDetonado=true`.
 6. Mis reglas: el escenario rechazado por mi detonación y mi `/explosiones/validar`.
+
+Las respuestas reales capturadas están en `insomnia/respuestas-ejemplo/`. Si A3 no está en línea, el feliz y el 409 de A3 se reproducen con un servidor local en 8083; el README indica qué queda pendiente con Cecilia real.
 
 ### POO-08
 

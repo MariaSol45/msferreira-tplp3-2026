@@ -1,5 +1,7 @@
 package py.edu.uc.lp3.msferreira.minecraft.rest.exception;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -12,10 +14,13 @@ import py.edu.uc.lp3.msferreira.minecraft.service.exception.RechazoCompaneroExce
 /** Traduce los errores de A2 y A3 a mi propia respuesta, indicando de quién vino. */
 @RestControllerAdvice
 public class CompaneroExceptionHandler {
+    private static final Logger REGISTRO = LogManager.getLogger(CompaneroExceptionHandler.class);
 
     @ExceptionHandler(RechazoCompaneroException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorCompanero manejarRechazo(RechazoCompaneroException excepcion) {
+        REGISTRO.debug("HTTP 409 devuelto: rechazo de {} ({}) con motivo {}", excepcion.getRol(),
+                excepcion.getCompanero(), excepcion.getMotivo());
         return new ErrorCompanero(
                 "Jugada rechazada por un compañero",
                 excepcion.getRol(),
@@ -31,6 +36,8 @@ public class CompaneroExceptionHandler {
     @ExceptionHandler(CompaneroNoDisponibleException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public ErrorCompanero manejarNoDisponible(CompaneroNoDisponibleException excepcion) {
+        REGISTRO.debug("HTTP 502 devuelto: {} ({}) no disponible", excepcion.getRol(),
+                excepcion.getCompanero());
         return new ErrorCompanero(
                 "Compañero no disponible",
                 excepcion.getRol(),

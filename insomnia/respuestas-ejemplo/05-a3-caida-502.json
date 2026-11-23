@@ -1,5 +1,12 @@
 {
   "pedido": "POST /jugadas/explosion",
+  "url": "http://100.87.131.50:8080/jugadas/explosion",
+  "cuerpoPedido": {
+    "creeperId": 1,
+    "jugadorId": 2,
+    "aldeanoId": 3,
+    "tiempoTranscurrido": 3
+  },
   "estado": 502,
   "cuerpo": {
     "error": "Compañero no disponible",
@@ -7,8 +14,13 @@
     "companero": "Cecilia",
     "estadoCompanero": null,
     "respuestaCompanero": null,
-    "mensaje": "A3 (Cecilia) no está disponible: no se pudo llamar a http://localhost:8083/explosiones/validar (conexión rechazada) La jugada no se guardó.",
+    "motivoCompanero": null,
+    "mensaje": "A3 (Cecilia) no está disponible: no se pudo llamar a http://100.122.114.103:8083/explosiones/validar (conexión rechazada) La jugada no se guardó.",
     "estado": 502
   },
-  "origen": "Ejecución real del 21/11/2026 con el servicio de 8083 detenido y 8082 arriba."
+  "verificacion": [
+    "GET /jugadas devolvió [].",
+    "A2 real respondió 200 aceptada=true justo antes del escenario."
+  ],
+  "origen": "Ejecución real del 23/11/2026. A1 se arrancó con su configuración por defecto: A2 real en Tailscale y A3 en http://100.122.114.103:8083, que no respondió (curl y Java recibieron conexión rechazada). No se guardó jugada ni hubo daño."
 }

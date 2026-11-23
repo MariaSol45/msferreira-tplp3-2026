@@ -1,14 +1,32 @@
 {
   "pedido": "POST /jugadas/explosion",
+  "url": "http://localhost:8080/jugadas/explosion",
+  "cuerpoPedido": {
+    "creeperId": 1,
+    "jugadorId": 2,
+    "aldeanoId": 3,
+    "tiempoTranscurrido": 3
+  },
+  "preparacion": "Ejecutar después del camino feliz: ya existe una Jugada para creeperId 1, por eso A1 envía yaDetonado=true.",
   "estado": 409,
   "cuerpo": {
     "error": "Jugada rechazada por un compañero",
     "origen": "A3",
     "companero": "Cecilia",
-    "estadoCompanero": 400,
-    "respuestaCompanero": "{\"error\":\"regla de Cecilia\"}",
-    "mensaje": "La jugada fue rechazada por A3 (Cecilia). La jugada no se guardó.",
+    "estadoCompanero": 409,
+    "respuestaCompanero": "{\"status\": 409, \"tipo\": \"CreeperYaDetonadoException\", \"mensaje\": \"El creeper ya detonó anteriormente.\"}",
+    "motivoCompanero": "CreeperYaDetonadoException",
+    "mensaje": "La jugada fue rechazada por A3 (Cecilia). Motivo: CreeperYaDetonadoException. La jugada no se guardó.",
     "estado": 409
   },
-  "origen": "Forma de la respuesta verificada por JugadaEscenarioIntegrationTests con un servidor HTTP que responde 400 como A3."
+  "cuerpoEnviadoAA3": {
+    "saludCreeper": 20,
+    "yaDetonado": true
+  },
+  "verificacion": [
+    "GET /jugadas devolvió solo la jugada id 1 (saludFinalJugador 14), sin una segunda fila.",
+    "GET /entidades/2 devolvió salud 14, igual que antes del rechazo.",
+    "GET /entidades/3 devolvió salud 14, igual que antes del rechazo."
+  ],
+  "origen": "Ejecución real del 23/11/2026 con A2 real (aceptó 200) y A3 reemplazado por un servidor HTTP local en 8083 porque Cecilia no responde. El rechazo 409 con CreeperYaDetonadoException replica el esquema publicado en el OpenAPI real de A3; queda pendiente observarlo con Cecilia en línea."
 }

@@ -207,6 +207,49 @@ Verificación:
 - Diagramas UML de secuencia en Mermaid: se completaron los cinco que pide la rúbrica (camino feliz, rechazo de A2 con 422, rechazo de A3 con 409, reglas propias 400/409/422 y fallo de comunicación 502) con índice enlazado desde README. Cada diagrama muestra solo A1, A2, A3 y H2 cuando intervienen, y una tabla distingue lo verificado de lo pendiente. El camino feliz real A1 → A2 → A3 queda registrado como **pendiente porque Cecilia no responde**; no se presenta como probado con los tres servicios reales.
 - No se ejecutaron `git add`, commit, push, merge ni cambios de rama. No se tocó la H2 de desarrollo.
 
+### 23 de noviembre de 2026 - continuación de la verificación POO-09
+
+Sesión con OpenCode (`opencode/big-pickle`). Prompt resumido: retomar solo los pendientes de POO-09 en `feature/poo-09-apis-cruzadas`, verificar A1/A2/A3 por HTTP, comprobar persistencia y rechazos, revisar Insomnia y los diagramas Mermaid, y estimar los requisitos de la rúbrica sin repetir la auditoría anterior ni tocar reglas que funcionan.
+
+Estado previo: A2 respondía en `http://100.87.95.24:8082`; A3 no respondía en `http://100.122.114.103:8083`; A1 no estaba levantada. Se revisaron rama, commits, código del escenario y documentación antes de ejecutar.
+
+Acciones y verificación:
+
+- Pruebas específicas: `ClienteCompaneroTests` (10) y `JugadaEscenarioIntegrationTests` (12), 22/22 sin fallos.
+- Se arrancó A1 desde el jar con H2 en memoria, sin tocar `minecraft/data/`, y se confirmó por Tailscale (`100.87.131.50:8080`). `GET /jugadas/companeros` mostró las URLs reales de A2 y A3.
+- A2 real aceptó a 2 bloques (200) y rechazó a 6 (422 `fuera_de_alcance`). El escenario con Jugador a 4.5 bloques pasó mis reglas, recibió el 422 de A2 y devolvió 409 con `origen=A2`, `estadoCompanero=422` y `motivoCompanero=fuera_de_alcance`; `GET /jugadas` quedó vacío y las saludes en 20.
+- A3 real sigue caída: el escenario devolvió 502 con `origen=A3` y sin cambios en H2. Con A2 apuntado a `localhost:9` se reprodujo el 502 con `origen=A2`, también sin cambios.
+- Como A3 no responde, se levantó un servidor HTTP local en 8083 con el contrato leído de su OpenAPI. Con A2 real: camino feliz 201 con `Location`, jugada leíble por GET y salud 14; repetir con el mismo Creeper envió `yaDetonado=true`, A3 local respondió 409 `CreeperYaDetonadoException` y A1 devolvió 409 con `origen=A3`, sin segunda jugada ni daño. Sigue pendiente repetir estos dos casos con Cecilia real.
+- Insomnia: se agregó `jugador_lejano_id` y el POST que lo crea; el rechazo de A2 usa ese Jugador en vez del que A2 acepta. Las cinco respuestas de ejemplo se reemplazaron por cuerpos copiados de ejecuciones reales del 23/11 y se validó el JSON.
+- README: se ajustaron los cinco diagramas (A3 fuera del diagrama de rechazo de A2, H2 con/sin INSERT y UPDATE, códigos 200/422/409/201/502) y la tabla de estado; se documentó la evidencia y lo pendiente.
+
+No se ejecutaron `git add`, commit, push, merge ni cambios de rama. Tampoco se modificaron reglas de negocio.
+
+### 23 de noviembre de 2026 - migración a Log4j2 y trazas DEBUG
+
+Sesión con OpenCode (`opencode/big-pickle`). Prompt resumido: el profesor exige Log4j2 y logs DEBUG en todos los pasos de la integración; si el proyecto usa Logback, migrar con el starter oficial; cubrir inicio/validación local, preparación y envío a A2/A3, respuestas 200/400/409/422, conexión/timeout/502, compañera que rechaza, decisión de persistencia y confirmación en H2; sin cambiar reglas de negocio ni ejecutar operaciones Git.
+
+Diagnóstico: `dependency:tree` mostró `spring-boot-starter-logging`, `logback-classic` y `log4j-to-slf4j`. Es decir, el código usaba SLF4J con backend Logback; el puente no era Log4j2 implementation. El enunciado y la rúbrica públicos no mencionan logging, pero se sigue la instrucción directa del profesor comunicada por el usuario.
+
+Cambios:
+
+- `pom.xml`: exclusión de `spring-boot-starter-logging` en los starters de Spring Boot y alta de `spring-boot-starter-log4j2`.
+- `ClienteCompanero.java`: logger nativo Log4j2, logs de preparación por esquema, URL/envío, estado HTTP recibido, 4xx interpretado, 5xx, respuesta sin `aceptada=true`, conexión/timeout y traducción a 502. Se conserva el cuerpo original del compañero para la respuesta de error, pero no se loguea.
+- `ClienteA2.java` y `ClienteA3.java`: descripción del esquema del cuerpo solo para el log, sin valores.
+- `JugadaService.java`: inicio de jugada, estado leído, validación local, consulta a cada compañera, decisión de no persistir al fallar, decisión de persistir y confirmación del `jugadaId` guardado en H2.
+- `CompaneroExceptionHandler.java`: logs del 409 y 502 finales con rol y compañero.
+- `application.properties`: `INFO` general y paquete de la aplicación en `INFO`, activable con `LOGGING_LEVEL_PY_EDU_UC_LP3_MSFERREIRA_MINECRAFT=DEBUG`.
+- `README.md`: documentación de la migración, la variable DEBUG y un ejemplo de traza.
+
+Verificación:
+
+- `dependency:tree` posterior: sin `spring-boot-starter-logging`, sin Logback y sin `log4j-to-slf4j`; presentes `spring-boot-starter-log4j2`, `log4j-core` y `log4j-slf4j2-impl`.
+- Tests específicos: `ClienteCompaneroTests` (10) y `JugadaEscenarioIntegrationTests` (12), 22/22 sin fallos.
+- `JugadaEscenarioIntegrationTests` con `DEBUG` mostró 200 aceptados, 400/409/422 rechazados con motivo, 503 traducido a 502, rechazo local, decisión de no persistir, decisión de persistir y guardado confirmado en H2.
+- Suite completa: `./mvnw -q test`, 132/132 sin fallos, errores ni omitidas.
+
+Sigue pendiente repetir el camino feliz y el rechazo con A3 real cuando Cecilia vuelva a publicar el servicio. No se ejecutaron `git add`, commit, push, merge ni cambios de rama; no se modificaron reglas de negocio ni la H2 de desarrollo.
+
 ## Resumen de prompts
 
 Los prompts de las sesiones POO-08 solicitaron, en palabras resumidas:

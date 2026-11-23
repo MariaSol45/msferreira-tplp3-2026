@@ -1,5 +1,12 @@
 {
   "pedido": "POST /jugadas/explosion",
+  "url": "http://localhost:8080/jugadas/explosion",
+  "cuerpoPedido": {
+    "creeperId": 1,
+    "jugadorId": 2,
+    "aldeanoId": 3,
+    "tiempoTranscurrido": 3
+  },
   "estado": 502,
   "cuerpo": {
     "error": "Compañero no disponible",
@@ -7,8 +14,13 @@
     "companero": "Irina",
     "estadoCompanero": null,
     "respuestaCompanero": null,
-    "mensaje": "A2 (Irina) no está disponible: no se pudo llamar a http://localhost:8082/explosiones/validar (conexión rechazada) La jugada no se guardó.",
+    "motivoCompanero": null,
+    "mensaje": "A2 (Irina) no está disponible: no se pudo llamar a http://localhost:9/api/minecraft/reglas/mecha-corta (conexión rechazada) La jugada no se guardó.",
     "estado": 502
   },
-  "origen": "Ejecución real del 21/11/2026 con el servicio de 8082 detenido. Después, GET /jugadas siguió con 1 jugada y el Jugador con salud 14."
+  "verificacion": [
+    "GET /jugadas devolvió [].",
+    "GET /entidades/2 devolvió salud 20."
+  ],
+  "origen": "Ejecución real del 23/11/2026. Se arrancó A1 con A2_BASE_URL=http://localhost:9 para simular que Irina no responde, sin modificar código. A3 era un servidor HTTP local. El mensaje muestra la ruta real configurada para A2."
 }

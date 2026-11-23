@@ -29,4 +29,9 @@ public class ClienteA2 extends ClienteCompanero {
         cuerpo.put("objetivos", estado.jugada().objetivos());
         return cuerpo;
     }
+
+    @Override
+    protected String describirCuerpo() {
+        return "MechaCortaRequest (saludCreeper, creeper, objetivos)";
+    }
 }

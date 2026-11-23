@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -17,6 +17,8 @@ import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.EstadoExplosi
 import py.edu.uc.lp3.msferreira.minecraft.service.ExplosionService.SolicitudExplosion;
 import py.edu.uc.lp3.msferreira.minecraft.service.companero.ClienteA2;
 import py.edu.uc.lp3.msferreira.minecraft.service.companero.ClienteA3;
+import py.edu.uc.lp3.msferreira.minecraft.service.exception.CompaneroException;
+import py.edu.uc.lp3.msferreira.minecraft.service.exception.ExplosionException;
 
 /**
  * Escenario de POO-09: una explosión de Creeper se registra solo si la aceptan A2 y A3.
@@ -30,7 +32,7 @@ import py.edu.uc.lp3.msferreira.minecraft.service.companero.ClienteA3;
 public class JugadaService {
     static final String TIPO_EXPLOSION = "Explosión de Creeper";
 
-    private static final Logger REGISTRO = LoggerFactory.getLogger(JugadaService.class);
+    private static final Logger REGISTRO = LogManager.getLogger(JugadaService.class);
 
     private final ExplosionService explosionService;
     private final JugadaRepository jugadaRepository;
@@ -49,18 +51,34 @@ public class JugadaService {
     }
 
     public Jugada registrarExplosion(SolicitudExplosion solicitud) {
-        REGISTRO.debug("Paso 1/5: describiendo participantes desde H2");
+        REGISTRO.debug("Iniciando jugada: creeperId={}, jugadorId={}, aldeanoId={}, tiempoTranscurrido={}",
+                solicitud.creeperId(), solicitud.jugadorId(), solicitud.aldeanoId(), solicitud.tiempoTranscurrido());
         EstadoExplosion estadoCreeper = explosionService.describir(solicitud);
-        REGISTRO.debug("Paso 2/5: evaluando mis dos reglas de explosión");
-        explosionService.validar(estadoCreeper.jugada());
+        REGISTRO.debug("Estado leído desde H2: saludCreeper={}, yaDetonado={}",
+                estadoCreeper.saludCreeper(), estadoCreeper.yaDetonado());
+        try {
+            explosionService.validar(estadoCreeper.jugada());
+            REGISTRO.debug("Validación local A1 correcta; se continúa con A2 y A3");
+        } catch (ExplosionException excepcion) {
+            REGISTRO.debug("Validación local A1 rechazó ({}); decisión: no persistir ni consultar compañeras",
+                    excepcion.getClass().getSimpleName());
+            throw excepcion;
+        }
 
-        REGISTRO.debug("Paso 3/5: consultando a A2 ({})", clienteA2.getCompanero());
-        clienteA2.validar(estadoCreeper);
-        REGISTRO.debug("Paso 4/5: consultando a A3 ({})", clienteA3.getCompanero());
-        clienteA3.validar(estadoCreeper);
+        try {
+            REGISTRO.debug("Consultando a A2 ({})", clienteA2.getCompanero());
+            clienteA2.validar(estadoCreeper);
+            REGISTRO.debug("Consultando a A3 ({})", clienteA3.getCompanero());
+            clienteA3.validar(estadoCreeper);
+        } catch (CompaneroException excepcion) {
+            REGISTRO.debug("Decisión: no persistir; {} ({}) originó {}",
+                    excepcion.getRol(), excepcion.getCompanero(), excepcion.getClass().getSimpleName());
+            throw excepcion;
+        }
 
-        REGISTRO.debug("Paso 5/5: A2 y A3 aceptaron; aplicando daño y guardando jugada");
-        return transaccion.execute(estado -> {
+        REGISTRO.debug("Decisión: persistir; A2={} y A3={} aceptaron", clienteA2.getCompanero(),
+                clienteA3.getCompanero());
+        Jugada guardada = transaccion.execute(estado -> {
             ResultadoExplosion resultado = explosionService.simular(solicitud);
             return jugadaRepository.save(new Jugada(
                     TIPO_EXPLOSION,
@@ -75,6 +93,9 @@ public class JugadaService {
                     Instant.now()
             ));
         });
+        REGISTRO.debug("Guardado en H2 confirmado: jugadaId={}, creeperId={}", guardada.getId(),
+                solicitud.creeperId());
+        return guardada;
     }
 
     public List<Jugada> listar() {
